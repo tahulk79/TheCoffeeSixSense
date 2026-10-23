@@ -24,7 +24,7 @@ Run from the repository root with Node 22 or later:
 
 ```sh
 npm ci --no-audit --no-fund
-node scripts/build-standalone.mjs --write
+npm run build:pages
 npm test
 npm run build
 ```
@@ -41,4 +41,4 @@ These checks exercise both Vite and the standalone artifact at 360, 768 and 1440
 
 ## Personal beans extension
 
-Phase 1 includes personal bag profiles with packaging/bean photos, manual metadata review and brewing without an invented reference score. AI packaging extraction is a VPS-backed capability with separate credential and activation requirements; see [BEAN-AI.md](BEAN-AI.md). An empty scan endpoint intentionally leaves manual entry available and AI marked disconnected.
+Phase 1 includes personal bag profiles with packaging/bean photos, manual metadata review and brewing without an invented reference score. Packaging OCR runs locally in the browser using assets bundled with GitHub Pages; no VPS or API key is needed. Explicit labels are proposed for review, and unknown information stays blank. See [BEAN-AI.md](BEAN-AI.md).

@@ -2,3 +2,7 @@ node_modules/
 dist/
 .env
 .DS_Store
+
+# Reproducible, pinned OCR runtime assets generated during build
+public/ocr/engine/
+docs/ocr/
