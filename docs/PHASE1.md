@@ -72,3 +72,11 @@ A drawn kettle, animated inlet, continued drawdown stream and overflow stream ma
 Counter results carry model version 2 in the existing separate `c6s.cafe.v1` key (latest 30); earlier counter results are retained without recalculating them. Unfinished cups do not survive reload. Legacy journals/photos/OCR remain in the optional studio.
 
 Validation: `npm test` covers clock boundaries, pulse events, water/material conservation, temperature/contact effects, dry waits, consistent advice, final-volume completion and reachable guest targets. `PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-cafe.mjs` checks the generated Pages artifact on mobile and desktop, including visible clocks, pouring/drawdown, replay comparison/timeline, bilingual notes, reload and studio access. These checks validate behavior rather than real-world sensory accuracy or player retention.
+
+## Scientific-boundary and actual-brew revision
+
+The counter now records `counter-assumptions-v3`: unsupported extraction-to-acidity/bitterness coefficients were removed. Those two axes remain explicitly fictional lot attributes. Relative strength and internal dissolution bands remain uncalibrated game assumptions. A bilingual “Why? Evidence & limits” panel distinguishes definitions, assumptions and primary sources awaiting review; no confidence probabilities are fabricated.
+
+A separate actual-brew form is accessible directly from the top of the page. It records real seconds and grams, per-field measured/estimated/unknown provenance, actual-brew attestation, optional tools/TDS/milestones and repeat/taster codes. Tasting is entered before opening calculations. Apparent extraction yield is only calculated when dose, beverage and TDS are present; estimated inputs remain estimates. No acidity/bitterness prediction or quality score is produced. Empty sensory responses stay unassessed. Local JSON export is separate from simulation and legacy journals, with recoverable storage failures.
+
+See [SCIENCE.md](SCIENCE.md) for evidence status, the blocked original-source review and version/schema boundaries, and [REAL-BREW-PROTOCOL.md](REAL-BREW-PROTOCOL.md) for a pilot workflow. No actual experimental dataset has yet been collected or used to calibrate the model.
