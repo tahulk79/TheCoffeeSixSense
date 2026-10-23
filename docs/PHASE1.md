@@ -98,3 +98,25 @@ Counter and legacy-journal XP/badges share one progression calculation while the
 The animation loop initializes from its first RAF timestamp, clamps backward deltas to zero and resets its clock on visibility changes. It no longer feeds negative time into the simulation when a click-time `performance.now()` is later than an initial RAF timestamp. A real-browser-clock test starts six independent rounds and completes one end-to-end without Playwright time mocking, in addition to accelerated campaign checks. Unit checks exercise backward/first/gapped timestamps, discovery criteria, migration, corrupt data and shared progression.
 
 Run `PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-counter-journey.mjs` for campaign/revisit/quota tests, `scripts/smoke-cafe.mjs` for free-play input/clock regression and `scripts/smoke-real-brew.mjs` for the separate empirical-data flow. These checks validate the mechanics and return state, not human enjoyment or real retention rates.
+
+### Cozy café atmosphere
+
+Original inline SVG café artwork adds a rainy dusk window, warm pendant light,
+plants and a wood counter. The pouring stage has a warm illustrated tabletop;
+existing input, timer and water-flow cues remain readable. Rain and steam motion
+respect `prefers-reduced-motion`.
+
+An original 72 BPM, four-chord instrumental loop is synthesized locally with Web
+Audio (soft keys, bass and melody). It contains no sampled recordings and makes
+no network requests. Music starts only from its explicit button, supports mute
+and volume, pauses while the document is hidden, and survives game/language
+rerenders. Only volume is remembered; reloading always starts silently. Audio
+failure shows a message without blocking play. This is a synthesized musical
+sketch, not a recorded soundtrack; subjective listening and player retention
+still need human feedback.
+
+Validation: `scripts/smoke-atmosphere.mjs` checks desktop/mobile silent startup,
+a nonzero real Web Audio signal, controls, rerenders, background pause/resume,
+reload preferences, reduced motion, no horizontal overflow and unavailable-audio
+fallback. Existing full pouring smoke checks still cover cup completion and
+saved results.
