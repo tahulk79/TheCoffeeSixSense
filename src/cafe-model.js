@@ -63,4 +63,4 @@ export function cafeAdvice(r){
  if(r.zone==='high')return r.heat>88?'high':'pulse';
  return 'profile';
 }
-export function cafeClock(seconds){const n=Math.max(0,Math.floor(seconds));return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;}
+export function cafeClock(seconds){if(!Number.isFinite(seconds))return '—';const n=Math.max(0,Math.floor(seconds));return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;}

@@ -32,7 +32,75 @@ html{scroll-behavior:smooth}p{line-height:1.65}button,select,input{min-height:44
 .drawdown-stream{width:5px;background:repeating-linear-gradient(to bottom,#dfaa6c 0 5px,transparent 6px 9px)}@media(max-width:550px){.live-filter{top:60px}.pour-stream{height:18px}.drawdown-stream{top:147px;height:18px}.overflow-stream{top:78px}}
 .science-panel{padding:12px 18px;margin:24px 0;border:1px solid #67503b;border-radius:14px;background:#241b15}.science-panel a{color:#efc191;text-underline-offset:3px}.science-panel li{line-height:1.7;margin:12px 0}.real-brew-wrap{max-width:780px;margin:0 auto;padding:0 20px 30px;scroll-margin-top:16px}.real-brew-wrap p,.real-brew-wrap label{overflow-wrap:anywhere}.real-brew-wrap h3{scroll-margin-top:18px}.real-measure{border:1px solid #67503b;border-radius:12px;padding:14px}.real-measure label{margin-bottom:10px}.provenance-label{font-size:.8rem}.real-event{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;border-top:1px solid #67503b;padding:14px 0}.real-event button{grid-column:1/-1}.real-data-actions{margin-top:24px}.real-history p{padding:10px 0;border-top:1px solid #67503b;font-size:.85rem}#real-error{color:#ffcf9c}#real-error:empty{display:none}@media(max-width:550px){.real-brew-wrap{padding:0 14px 20px}.real-event{grid-template-columns:1fr 1fr}.real-event label:last-of-type{grid-column:1/-1}}
 .brew-modes{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:20px 0}.brew-modes a{color:#efc191;padding:12px 0;text-underline-offset:4px}
+.counter-home,.pour-achievement,.discovery-card{padding:18px;border:1px solid #947150;border-radius:16px;margin:18px 0;background:#302316}.counter-home h2{font-size:1.3rem;margin:0 0 12px}.counter-home>button{margin:4px 8px 8px 0}.counter-home li{line-height:1.7}.counter-xp{font-size:.85rem;color:#d9bb99}.lesson-picker{margin:16px 0;padding:4px 14px;border:1px solid #67503b;border-radius:12px}.lesson-buttons{display:grid;gap:10px;padding:8px 0 14px}.lesson-buttons button{text-align:left}.counter-history{padding-left:20px}.counter-history li{padding:12px 0;border-bottom:1px solid #67503b}.counter-history button{display:block;margin:8px 0}.counter-history p{margin:6px 0}.pour-achievement h3,.discovery-card h3{margin:0 0 10px}.pour-achievement p:last-child{margin-bottom:0}.clean-pour{border-color:#9db789;background:#243021}.discovery-card{border-left:4px solid #dfb06e}.challenge-goal{color:#edd2ac;font-size:.92rem}.saved-discovery{border-left:3px solid #dca66b;padding-left:12px;overflow-wrap:anywhere}@media(max-width:550px){.counter-home,.pour-achievement,.discovery-card{padding:14px}.counter-home>button{width:100%;margin:4px 0}.counter-xp{font-size:.8rem}}
+.round-details{margin:20px 0;padding:0 14px;border:1px solid #67503b;border-radius:12px}.cafe-play>.actions{margin:18px 0}.pour-achievement{margin-bottom:12px}.pour-achievement h3{font-size:1.08rem}
 </style><script type="module">
+const counterKey = 'c6s.counter.v1';
+const oldCounterKey = 'c6s.cafe.v1';
+const counterLessons = [
+ {id:'control',guest:0,title:['Giữ nước trong phễu','Keep water in the filter'],goal:['Pha một ly tràn không quá 1 ml. Quan sát nước còn lại trong bột và lượng thu trong ly.','Brew with at most 1 ml overflow. Notice retained water and collected beverage.'],discovery:['Nước rót không bằng đồ uống: một phần được bột giữ lại trong mô hình.','Poured water differs from beverage: the model retains some in the grounds.']},
+ {id:'compare',guest:1,title:['Đổi nhịp, quan sát hai ly','Change the rhythm, compare cups'],goal:['Pha hai ly cùng hạt và nhiệt độ, đổi nhịp rót rồi xác định ly sau thu được nhiều hay ít đồ uống hơn.','Brew twice with the same bean and temperature, change the rhythm, then identify the beverage-yield difference.'],discovery:['So sánh lượng đồ uống và nước tràn trước khi kết luận về hương vị.','Compare collected beverage and overflow before drawing taste conclusions.']},
+ {id:'service',guest:2,title:['Hợp gu và khéo tay','Taste fit and pouring skill'],goal:['Phục vụ đúng gu Minh trong game, đồng thời tràn không quá 1 ml. Đây là hai mục tiêu riêng.','Match Minh’s fictional taste while spilling at most 1 ml. These are separate goals.'],discovery:['Khẩu vị khách và kỹ năng rót là hai đánh giá riêng; không phải điểm ngon ngoài đời.','Guest preference and pouring skill are separate, not a real-world quality score.']}
+];
+function counterYieldAnswer(current,baseline){return current.beverage>baseline.beverage?'more':current.beverage<baseline.beverage?'less':'same';}
+function counterPair(round,rounds){
+ const index=rounds.findIndex(r=>r.id===round.id),base=rounds.slice(0,index<0?rounds.length:index).find(r=>r.id===round.baselineId);
+ if(!base||round.bean!==base.bean||round.heat!==base.heat||!Number.isFinite(round.beverage)||!Number.isFinite(base.beverage)||!Number.isFinite(round.holds)||!Number.isFinite(base.holds))return null;
+ if(round.holds===base.holds&&Math.abs(round.time-base.time)<6)return null;
+ return base;
+}
+function counterProgress(rounds=[]){
+ const proof={};
+ for(const r of rounds){
+  if(r.lesson==='control'&&r.overflow<=1&&Number.isFinite(r.overflow)&&!proof.control)proof.control=r.id;
+  if(proof.control&&r.lesson==='compare'&&!proof.compare){const base=counterPair(r,rounds);if(base&&base.lesson==='compare'&&r.observationAnswer===counterYieldAnswer(r,base))proof.compare=r.id;}
+  if(proof.compare&&r.lesson==='service'&&r.fit==='great'&&r.overflow<=1&&!proof.service)proof.service=r.id;
+ }
+ const completed=counterLessons.filter(l=>proof[l.id]).map(l=>l.id);
+ return {completed,proof,next:counterLessons.find(l=>!proof[l.id])?.id||'free',xp:rounds.length*10+completed.length*15+rounds.filter(r=>typeof r.note==='string'&&r.note.trim()).length*5};
+}
+function validCounterRound(r){
+ if(!r||typeof r.id!=='string'||!['brazil','colombia','ethiopia'].includes(r.bean)||!Number.isInteger(r.guest)||r.guest<0||r.guest>2||!Array.isArray(r.flavor)||r.flavor.length!==3||!r.flavor.every(v=>Number.isInteger(v)&&v>=1&&v<=5))return false;
+ if(r.kind!==undefined&&r.kind!=='game_simulation')return false;
+ if(r.lesson!==undefined&&!['control','compare','service','free'].includes(r.lesson))return false;
+ if(r.note!==undefined&&(typeof r.note!=='string'||r.note.length>1000))return false;
+ if(r.observationAnswer!==undefined&&!['more','less','same'].includes(r.observationAnswer))return false;
+ if(r.baselineId!==undefined&&r.baselineId!==null&&typeof r.baselineId!=='string')return false;
+ for(const key of ['time','pourTime','waitTime','overflow','beverage','holds','contact'])if(r[key]!==undefined&&(!Number.isFinite(r[key])||r[key]<0))return false;
+ if(r.heat!==undefined&&![88,92,96].includes(r.heat))return false;
+ if(r.date!==null&&r.date!==undefined&&!Number.isFinite(Date.parse(r.date)))return false;
+ if(r.fit!==undefined&&!['great','close','different'].includes(r.fit))return false;
+ if(r.events!==undefined&&(!Array.isArray(r.events)||!r.events.every(e=>e&&['start','pour','pause','finish'].includes(e.type)&&Number.isFinite(e.time)&&e.time>=0&&Number.isFinite(e.volume)&&e.volume>=0)))return false;
+ return true;
+}
+function emptyCounter(){return {version:1,rounds:[],resume:{lesson:'control',guest:0,bean:'brazil',heat:92},favoriteId:null};}
+function loadCounter(raw,legacyRaw=null){
+ const blank=emptyCounter();
+ try{
+  if(raw===null){
+   if(legacyRaw===null)return {store:blank,writable:true,raw:null,source:'new'};
+   const old=JSON.parse(legacyRaw);if(!Array.isArray(old))throw Error();
+   const rounds=old.map((r,i)=>({...r,id:typeof r?.id==='string'?r.id:`legacy-counter-${i}`,date:r?.date||null,imported:true}));
+   if(!rounds.every(validCounterRound)||new Set(rounds.map(r=>r.id)).size!==rounds.length)throw Error();
+   return {store:{...blank,rounds},writable:true,raw:legacyRaw,source:'legacy'};
+  }
+  const s=JSON.parse(raw),v=s?.resume;
+  if(s?.version!==1||!Array.isArray(s.rounds)||!s.rounds.every(validCounterRound)||new Set(s.rounds.map(r=>r.id)).size!==s.rounds.length||!v||!['control','compare','service','free'].includes(v.lesson)||!['brazil','colombia','ethiopia'].includes(v.bean)||![88,92,96].includes(v.heat)||!Number.isInteger(v.guest)||v.guest<0||v.guest>2||(s.favoriteId!==null&&!s.rounds.some(r=>r.id===s.favoriteId)))throw Error();
+  return {store:s,writable:true,raw,source:'counter'};
+ }catch{return {store:blank,writable:false,raw:raw===null?legacyRaw:raw,source:raw===null?'legacy':'counter'};}
+}
+function addCounterRound(store,round){
+ if(!validCounterRound(round))throw Error('Invalid counter round');
+ if(store.rounds.some(r=>r.id===round.id))return store;
+ const next={...store,rounds:[...store.rounds,round]};
+ const lesson=round.lesson==='free'?'free':counterProgress(next.rounds).next,guest=counterLessons.find(l=>l.id===lesson)?.guest??round.guest;
+ return {...next,resume:{lesson,guest,bean:round.bean,heat:round.heat}};
+}
+function cafeFrameDelta(now,last){
+ if(last===null||!Number.isFinite(now)||!Number.isFinite(last))return 0;
+ return Math.max(0,Math.min(.1,(now-last)/1000));
+}
+
 const scienceRevision = 'supplied-source-review-v2';
 const studyReviewUrl = 'https://github.com/tahulk79/TheCoffeeSixSense/blob/main/docs/evidence/2020-temperature-review.md';
 // Read from supplied files; publisher-download authenticity is a separate check.
@@ -223,18 +291,86 @@ function cafeAdvice(r){
  if(r.zone==='high')return r.heat>88?'high':'pulse';
  return 'profile';
 }
-function cafeClock(seconds){const n=Math.max(0,Math.floor(seconds));return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;}
+function cafeClock(seconds){if(!Number.isFinite(seconds))return '—';const n=Math.max(0,Math.floor(seconds));return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;}
 
-function mountCafe(){
+function mountCafe({getJournalSessions=()=>[]}={}){
  const studio=document.querySelector('#app');studio.hidden=true;
  const root=document.createElement('div');root.id='cafe';studio.before(root);
  let lang='vi';try{lang=localStorage.getItem('c6s.language')==='en'?'en':'vi';}catch{}
  const tx=(vi,en)=>lang==='vi'?vi:en, at=values=>values[lang==='vi'?0:1];
- let guest=0,bean='brazil',heat=92,state=null,holding=false,toggle=false,screen='setup',previous=null,result=null,frame=0,last=0,rounds=[];
- try{const data=JSON.parse(localStorage.getItem('c6s.cafe.v1')||'[]');if(Array.isArray(data))rounds=data.filter(r=>r&&cafeBeans.some(b=>b.id===r.bean)&&Number.isInteger(r.guest)&&r.guest>=0&&r.guest<3&&Array.isArray(r.flavor)&&r.flavor.length===3&&r.flavor.every(n=>Number.isInteger(n)&&n>=1&&n<=5)).slice(-30);}catch{}
+ let loaded;try{loaded=loadCounter(localStorage.getItem(counterKey),localStorage.getItem(oldCounterKey));}catch{loaded={...loadCounter(null),writable:false};}
+ let book=loaded.store,rounds=book.rounds,saveError=false;
+ let {guest,bean,heat,lesson}=book.resume;
+ if(lesson!=='free'&&counterLessons.findIndex(l=>l.id===lesson)>counterProgress(rounds).completed.length)lesson=counterProgress(rounds).next;
+ if(lesson!=='free')guest=counterLessons.find(l=>l.id===lesson).guest;
+ let state=null,holding=false,toggle=false,screen='setup',previous=lesson==='compare'?rounds.findLast(r=>r.lesson==='compare')||null:null,result=null,frame=0,last=null,playedLesson=lesson;
  const labels=()=>[tx('Chua','Acidity'),tx('Đắng','Bitterness'),tx('Độ đậm · nồng độ','Strength · concentration')];
  const level=n=>at([['rất thấp','thấp','vừa','cao','rất cao'][n-1],['very low','low','medium','high','very high'][n-1]]);
  const meters=values=>values.map((n,i)=>`<div class="flavor-row"><span>${labels()[i]}</span><meter min="0" max="5" value="${n}" aria-label="${labels()[i]}: ${level(n)}"></meter><b>${level(n)}</b></div>`).join('');
+ const htmlSafe=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const learning=()=>counterProgress(rounds);
+ const shared=()=>progression(getJournalSessions(),rounds);
+ const currentLesson=()=>counterLessons.find(l=>l.id===lesson);
+ const pendingObservation=()=>{if(learning().next!=='compare')return null;const r=rounds.findLast(r=>r.lesson==='compare');return r&&counterPair(r,rounds)?r:null;};
+ const savedResult=()=>result&&rounds.some(r=>r.id===result.id);
+ function writeBook(next){
+  if(!loaded.writable){saveError=true;return false;}
+  try{localStorage.setItem(counterKey,JSON.stringify(next));book=next;rounds=book.rounds;saveError=false;window.dispatchEvent(new Event('c6s-counter-changed'));return true;}
+  catch{saveError=true;return false;}
+ }
+ function rememberSetup(){writeBook({...book,resume:{lesson,guest,bean,heat}});}
+ function downloadCounter(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ function startCup(){stopHolding();cancelAnimationFrame(frame);state=cafeStart(bean,heat);playedLesson=lesson;screen='pour';result=null;render();root.querySelector('#hold-pour').focus();last=null;frame=requestAnimationFrame(tick);}
+ function chooseLesson(id){
+  if(screen==='pour')return;
+  const progress=learning(),index=counterLessons.findIndex(l=>l.id===id);
+  if(id!=='free'&&(index<0||index>progress.completed.length))return;
+  lesson=id;if(currentLesson())guest=currentLesson().guest;
+  previous=id==='compare'?rounds.findLast(r=>r.lesson==='compare')||null:null;
+  if(previous){bean=previous.bean;heat=previous.heat;}
+  screen='setup';result=null;rememberSetup();render();root.querySelector('#cafe-play').focus();
+ }
+ function renderProgress(){const p=shared();return `<p class="counter-xp">${tx('Hành trình chung','Shared journey')} · ${tx('Cấp','Level')} ${p.level} · <strong>${p.xp} XP</strong> · ${learning().completed.length}/3 ${tx('khám phá','discoveries')}</p>`;}
+ function renderWelcome(){
+  if(screen!=='setup'||!rounds.length)return '';
+  const latest=rounds.at(-1),progress=learning(),favorite=rounds.find(r=>r.id===book.favoriteId);
+  return `<section class="counter-home"><h2>${progress.completed.length===3?tx('Bạn đã mở đủ ba khám phá','All three discoveries are yours'):tx('Tiếp tục từ ly trước','Pick up from your last cup')}</h2><p>${tx('Ly gần nhất','Latest cup')}: ${htmlSafe(at(cafeBeans.find(b=>b.id===latest.bean).name))} · ${latest.heat??'—'}°C · ${latest.beverage??'—'} ml · ${tx('tràn','spilled')} ${latest.overflow??'—'} ml.</p>${latest.note?`<p class="saved-discovery">“${htmlSafe(latest.note)}”</p>`:''}<button id="counter-continue">${progress.next==='free'?tx('Luyện tiếp theo nhịp của bạn','Practice your own rhythm'):pendingObservation()?tx('Hoàn tất quan sát ly trước','Finish observing your last cup'):tx('Tiếp tục khám phá','Continue your discovery')}</button>${favorite?`<button id="counter-favorite" class="secondary">${tx('Pha công thức đã đánh dấu','Brew your bookmarked recipe')}</button>`:''}${progress.completed.length===3?`<ul>${counterLessons.map(l=>`<li>✓ ${at(l.discovery)}</li>`).join('')}</ul><p>${tx('Lộ trình nền tảng đã hoàn thành. Bạn có thể luyện lại một khám phá hoặc chơi tự do; không có màn mới bị giấu sau số lượt pha.','You completed the foundation. Revisit a discovery or play freely; no extra stage is hidden behind brew counts.')}</p>`:''}<details><summary>${tx('Các ly đã lưu & khám phá','Saved cups & discoveries')} · ${rounds.length}</summary><ol class="counter-history">${rounds.slice(-10).reverse().map(r=>`<li><strong>${htmlSafe(at(cafeBeans.find(b=>b.id===r.bean).name))}</strong> · ${r.beverage??'—'} ml · ${tx('tràn','spilled')} ${r.overflow??'—'} ml${r.note?`<p>${htmlSafe(r.note)}</p>`:''}<button type="button" class="secondary counter-view" data-id="${htmlSafe(r.id)}">${tx('Xem ly & pha lại','View cup & brew again')}</button></li>`).join('')}</ol></details></section>`;
+ }
+ function lessonPicker(){
+  if(screen==='pour')return '';
+  const progress=learning();
+  return `<details class="lesson-picker"><summary>${tx('Lộ trình ba khám phá','Three-discovery path')} · ${progress.completed.length}/3</summary><div class="lesson-buttons">${counterLessons.map((l,i)=>`<button class="secondary counter-lesson" data-lesson="${l.id}" ${i>progress.completed.length?'disabled':''}>${progress.completed.includes(l.id)?'✓ ':''}${i+1}. ${at(l.title)}</button>`).join('')}<button class="secondary counter-lesson" data-lesson="free">${tx('Chơi tự do','Free play')}</button></div></details>`;
+ }
+ function renderSkill(){
+  const clean=result.overflow<=1,improved=previous&&Number.isFinite(previous.beverage)&&result.beverage>previous.beverage;
+  return `<section class="pour-achievement ${clean?'clean-pour':''}"><h3>${clean?tx('Rót khéo: bạn giữ được nước trong phễu!','Pouring skill: you kept water in the filter!'):tx('Khẩu vị và thao tác là hai mục tiêu riêng','Taste fit and handling are separate goals')}</h3><p>${clean?tx('Lượt này tràn không quá 1 ml. Thành quả này được ghi nhận riêng với phản hồi của khách.','At most 1 ml spilled. This achievement is recognized separately from the guest’s taste response.'):tx('Bạn có thể làm khách hài lòng và vẫn mất đồ uống do tràn. Thử thả nút sớm hơn khi nước lên gần vạch.','You can satisfy a guest and still lose beverage to overflow. Try releasing earlier near the line.')}</p>${improved?`<p class="decision-good">${tx('Bạn vừa thu thêm','You collected')} <strong>${result.beverage-previous.beverage} ml</strong> ${tx('so với ly trước','more than the previous cup')} · ${tx('tràn','spilled')} ${previous.overflow??'—'} → ${result.overflow} ml.</p>`:''}<p>${tx('Trong ly','In cup')}: <strong>${result.beverage??'—'} ml</strong> · ${tx('Tràn','Spilled')}: <strong>${result.overflow??'—'} ml</strong> · ${result.holds??'—'} ${tx('nhịp rót','pulses')}.</p><p>${savedResult()?`+10 XP ${tx('luyện tập đã lưu','saved practice')}${Object.values(learning().proof).includes(result.id)?` · +15 XP ${tx('khám phá lần đầu','first discovery')}`:''}`:tx('Lượt này chưa lưu; chưa cộng XP.','This cup is unsaved; no XP awarded.')}</p></section>`;
+ }
+ function renderLearning(){
+  const l=currentLesson();if(!l)return '';
+  const progress=learning(),passed=progress.completed.includes(l.id);
+  if(passed)return `<aside class="discovery-card"><h3>✓ ${progress.proof[l.id]===result.id?tx('Khám phá mới','New discovery'):tx('Khám phá đã mở','Discovery unlocked')} · ${at(l.title)}</h3><p>${at(l.discovery)}</p></aside>`;
+  if(l.id==='compare'){
+   const base=counterPair(result,rounds);
+   if(base&&base.lesson==='compare')return `<aside class="discovery-card"><h3>${tx('Bạn nhận ra điều gì?','What did you observe?')}</h3><p>${tx('Ly trước','Previous cup')}: <strong>${base.beverage} ml</strong> · ${tx('Ly này','This cup')}: <strong>${result.beverage} ml</strong>. ${tx('Ly này thu được…','This cup collected…')}</p><div class="actions">${['more','same','less'].map((answer,i)=>`<button class="counter-observe secondary" data-answer="${answer}" ${!savedResult()?'disabled':''}>${[tx('Nhiều hơn','More'),tx('Bằng nhau','The same'),tx('Ít hơn','Less')][i]}</button>`).join('')}</div>${result.observationAnswer?`<p role="status">${tx('Đối chiếu lại hai số “Trong ly”. Thay đổi thao tác không bắt buộc làm mọi mức hương vị đổi theo.','Check the two “In cup” values. A change in handling does not have to change every flavor band.')}</p>`:''}</aside>`;
+   return `<aside class="discovery-card"><h3>${at(l.title)}</h3><p>${previous?tx('Để so sánh: giữ cùng hạt và nhiệt độ, đổi số nhịp hoặc thời gian chờ ít nhất 6 giây mô phỏng.','To compare: keep bean and temperature, change pulse count or waiting by at least 6 simulated seconds.'):tx('Ly này là mốc đầu. Pha lại, giữ hạt/nhiệt độ và đổi nhịp; sau đó đọc kết quả hai ly.','This is your baseline. Brew again with the same bean/temperature and a different rhythm, then read the comparison.')}</p></aside>`;
+  }
+  return `<aside class="discovery-card"><h3>${at(l.title)}</h3><p>${at(l.goal)}</p></aside>`;
+ }
+ function bindCounter(){
+  root.querySelector('#counter-continue')?.addEventListener('click',()=>{const r=pendingObservation();if(r){result=r;previous=rounds.find(x=>x.id===r.baselineId);lesson='compare';guest=r.guest;bean=r.bean;heat=r.heat;screen='result';render();root.querySelector('#cafe-play').focus();}else chooseLesson(learning().next);});
+  root.querySelectorAll('.counter-lesson').forEach(button=>button.onclick=()=>chooseLesson(button.dataset.lesson));
+  root.querySelector('#counter-favorite')?.addEventListener('click',()=>{const r=rounds.find(x=>x.id===book.favoriteId);if(!r)return;lesson='free';guest=r.guest;bean=r.bean;heat=r.heat;previous=r;screen='setup';rememberSetup();render();root.querySelector('#cafe-play').focus();});
+  root.querySelectorAll('.counter-view').forEach(button=>button.onclick=()=>{const r=rounds.find(x=>x.id===button.dataset.id);if(!r)return;result=r;guest=r.guest;lesson=r.lesson||'free';bean=r.bean;heat=r.heat||92;previous=rounds.find(x=>x.id===r.baselineId)||null;screen='result';render();root.querySelector('#cafe-play').focus();});
+  root.querySelector('#counter-save-again')?.addEventListener('click',()=>{writeBook(addCounterRound(book,result));render();});
+  root.querySelector('#counter-export')?.addEventListener('click',()=>downloadCounter({kind:'game_counter_backup',store:book,unsaved:savedResult()?null:result},'coffee-counter.json'));
+  root.querySelector('#counter-recovery')?.addEventListener('click',()=>downloadCounter({source:loaded.source,raw:loaded.raw},'coffee-counter-recovery.json'));
+  root.querySelector('#counter-bookmark')?.addEventListener('click',()=>{if(!savedResult())return;writeBook({...book,favoriteId:book.favoriteId===result.id?null:result.id});render();});
+  root.querySelectorAll('.counter-observe').forEach(button=>button.onclick=()=>{
+   if(!savedResult())return;const updated={...result,observationAnswer:button.dataset.answer};let next={...book,rounds:rounds.map(r=>r.id===result.id?updated:r)};const nextLesson=counterProgress(next.rounds).next;
+   next.resume={lesson:nextLesson,guest:counterLessons.find(l=>l.id===nextLesson)?.guest??guest,bean,heat};
+   if(writeBook(next))result=updated;render();
+  });
+ }
  function hint(r){
   const messages={
    success:['Khách đã hài lòng trong khoảng khẩu vị cho phép. Bạn có thể đón khách mới hoặc thử một thay đổi để khám phá, không cần sửa ly này.','The guest is happy within their taste tolerance. Serve the next guest or explore a change; this cup needs no correction.'],
@@ -247,29 +383,33 @@ function mountCafe(){
  }
  const zoneLabel=r=>r.zone==='low'?tx('thấp','low'):r.zone==='high'?tx('cao','high'):tx('vùng giữa','middle range');
  function timers(r,live=false){return `<div class="brew-timers ${live?'live-timers':''}"><div><small>${tx('Tổng thời gian pha','Total brew time')}</small><strong ${live?'id="live-clock"':''}>${cafeClock(r.time)}</strong></div><div><small>${tx('Đang cấp nước','Pouring time')}</small><strong ${live?'id="live-pour-clock"':''}>${cafeClock(r.pourTime)}</strong></div><div><small>${tx('Chờ / nước rút','Waiting / draining')}</small><strong ${live?'id="live-wait-clock"':''}>${cafeClock(Math.floor(r.time)-Math.floor(r.pourTime))}</strong></div></div><p class="help time-scale">${tx('Đồng hồ mô phỏng ×6: 1 giây chơi = 6 giây trên đồng hồ. Không phải thời gian chuẩn cho cà phê thật.','Simulation clock ×6: 1 play second = 6 clock seconds. This is not a real brewing-time recommendation.')}</p>`;}
- function timeline(r){return `<details class="brew-timeline"><summary>${tx('Các mốc pha','Brew timeline')}</summary><ol>${r.events.map(e=>`<li><time>${cafeClock(e.time)}</time> · ${e.type==='start'?tx('Giọt nước đầu tiên','First water'):e.type==='pour'?tx('Bắt đầu rót','Pour started'):e.type==='pause'?tx('Ngừng rót / chờ nước rút','Pour stopped / draining'):tx('Nước chảy xong','Drawdown finished')} · ${Math.round(e.volume)} ml</li>`).join('')}</ol></details>`;}
+ function timeline(r){return `<details class="brew-timeline"><summary>${tx('Các mốc pha','Brew timeline')}</summary><ol>${(r.events||[]).map(e=>`<li><time>${cafeClock(e.time)}</time> · ${e.type==='start'?tx('Giọt nước đầu tiên','First water'):e.type==='pour'?tx('Bắt đầu rót','Pour started'):e.type==='pause'?tx('Ngừng rót / chờ nước rút','Pour stopped / draining'):tx('Nước chảy xong','Drawdown finished')} · ${Math.round(e.volume)} ml</li>`).join('')}</ol></details>`;}
  function render(){
-  const note=root.querySelector('#cafe-note');if(note&&result)result.note=note.value;
+  const note=root.querySelector('#cafe-note');if(note&&result)result={...result,note:note.value};
   document.documentElement.lang=lang;
-  root.innerHTML=`<main class="cafe-main"><header class="cafe-header"><span class="eyebrow">THE COFFEE SIX SENSE</span><label>${tx('Ngôn ngữ','Language')}<select id="cafe-language"><option value="vi" ${lang==='vi'?'selected':''}>Tiếng Việt</option><option value="en" ${lang==='en'?'selected':''}>English</option></select></label></header><h1>${tx('Một ly, một khám phá.','One cup, one discovery.')}</h1><p class="cafe-intro">${tx('Mở quầy cà phê nhỏ. Tự tay rót một ly hợp ý khách.','Open your little coffee counter. Pour a cup your guest will love.')}</p><nav class="brew-modes"><a href="#cafe-play">${tx('Chơi mô phỏng','Play simulation')}</a><button id="open-real-brew" class="secondary">${tx('Ghi lượt pha thật','Record a real brew')}</button></nav><section class="guest-card"><span class="guest-avatar" aria-hidden="true">${cafeGuests[guest].name[0]}</span><div><small>${tx('Khách tại quầy','At the counter')} · ${guest+1}/3</small><h2>${cafeGuests[guest].name}</h2><p>${at(cafeGuests[guest].request)}</p><details><summary>${tx('Khẩu vị khách','Guest’s taste')}</summary>${meters(cafeGuests[guest].target)}</details></div></section><section class="panel cafe-play" id="cafe-play" tabindex="-1">${screen==='setup'?setup():screen==='pour'?pour():outcome()}</section><p class="help model-note">${tx('Hương vị được tạo bởi mô hình trò chơi, không dự đoán chất lượng hay vị của cà phê thật.','Flavors come from a game model, not a prediction of real coffee taste or quality.')}</p>${sciencePanel(lang)}<button id="studio-toggle" class="secondary">${tx('Hồ sơ hạt & nhật ký · tùy chọn','Bean library & journal · optional')}</button><p class="help">${tx('Tiến độ quầy được lưu trên trình duyệt này khi có thể.','Counter progress is saved in this browser when available.')} ${rounds.length} ${tx('ly đã pha','cups brewed')}.</p></main>`;
+  root.innerHTML=`<main class="cafe-main"><header class="cafe-header"><span class="eyebrow">THE COFFEE SIX SENSE</span><label>${tx('Ngôn ngữ','Language')}<select id="cafe-language"><option value="vi" ${lang==='vi'?'selected':''}>Tiếng Việt</option><option value="en" ${lang==='en'?'selected':''}>English</option></select></label></header><h1>${tx('Một ly, một khám phá.','One cup, one discovery.')}</h1><p class="cafe-intro">${tx('Mở quầy cà phê nhỏ. Tự tay rót một ly hợp ý khách.','Open your little coffee counter. Pour a cup your guest will love.')}</p><nav class="brew-modes"><button id="counter-play-nav">${!rounds.length&&screen==='setup'?tx('Pha thử ly đầu tiên','Try your first cup'):tx('Chơi mô phỏng','Play simulation')}</button><button id="open-real-brew" class="secondary">${tx('Ghi lượt pha thật','Record a real brew')}</button></nav><div id="counter-progress">${renderProgress()}</div>${renderWelcome()}${lessonPicker()}<section class="guest-card"><span class="guest-avatar" aria-hidden="true">${cafeGuests[guest].name[0]}</span><div><small>${tx('Khách tại quầy','At the counter')} · ${guest+1}/3</small><h2>${cafeGuests[guest].name}</h2><p>${at(cafeGuests[guest].request)}</p><details><summary>${tx('Khẩu vị khách','Guest’s taste')}</summary>${meters(cafeGuests[guest].target)}</details></div></section>${saveError||!loaded.writable?`<div class="warning" role="status">${tx('Chưa lưu được tiến độ. Không cộng XP cho lượt chưa lưu; bạn có thể thử lưu lại hoặc tải bản sao.','Progress is not saved. Unsaved cups earn no XP; retry saving or download a backup.')}<div class="actions"><button id="counter-export" class="secondary">${tx('Tải bản sao','Download backup')}</button>${loaded.raw&&!loaded.writable?`<button id="counter-recovery" class="secondary">${tx('Tải dữ liệu gốc để phục hồi','Download original for recovery')}</button>`:''}</div></div>`:''}<section class="panel cafe-play" id="cafe-play" tabindex="-1">${screen==='setup'?setup():screen==='pour'?pour():outcome()}</section><p class="help model-note">${tx('Hương vị được tạo bởi mô hình trò chơi, không dự đoán chất lượng hay vị của cà phê thật.','Flavors come from a game model, not a prediction of real coffee taste or quality.')}</p>${sciencePanel(lang)}<button id="studio-toggle" class="secondary">${tx('Hồ sơ hạt & nhật ký · tùy chọn','Bean library & journal · optional')}</button><p class="help">${tx('Tiến độ quầy được lưu trên trình duyệt này khi có thể.','Counter progress is saved in this browser when available.')} ${rounds.length} ${tx('ly đã pha','cups brewed')}.</p></main>`;
   root.querySelector('#cafe-language').onchange=e=>{stopHolding();lang=e.target.value;try{localStorage.setItem('c6s.language',lang);}catch{}render();window.dispatchEvent(new CustomEvent('c6s-language',{detail:lang}));};
+  root.querySelector('#counter-play-nav').onclick=()=>{if(screen==='setup'&&!rounds.length)startCup();else root.querySelector('#cafe-play').scrollIntoView({behavior:'smooth',block:'start'});};
   root.querySelector('#open-real-brew').onclick=()=>{const section=document.querySelector('#real-brew');section.querySelector('details').open=true;section.scrollIntoView({behavior:'smooth',block:'start'});};
   root.querySelector('#studio-toggle').onclick=()=>{studio.hidden=!studio.hidden;if(!studio.hidden)studio.scrollIntoView({behavior:'smooth'});};
+  bindCounter();
   if(screen==='setup'){
-   root.querySelectorAll('[name=cafe-bean]').forEach(el=>el.onchange=()=>{bean=el.value;render();});
-   root.querySelector('#cafe-heat').onchange=e=>{heat=Number(e.target.value);};
-   root.querySelectorAll('.cafe-start').forEach(button=>button.onclick=()=>{state=cafeStart(bean,heat);screen='pour';render();root.querySelector('#hold-pour').focus();last=performance.now();frame=requestAnimationFrame(tick);});
+   root.querySelectorAll('[name=cafe-bean]').forEach(el=>el.onchange=()=>{bean=el.value;rememberSetup();render();});
+   root.querySelector('#cafe-heat').onchange=e=>{heat=Number(e.target.value);rememberSetup();};
+   root.querySelectorAll('.cafe-start').forEach(button=>button.onclick=startCup);
+   root.querySelector('#free-guest')?.addEventListener('change',e=>{guest=Number(e.target.value);rememberSetup();render();});
   }else if(screen==='pour')bindPour();
   else {
    bindNote();
-   root.querySelector('#cafe-retry').onclick=()=>{previous=result;screen='setup';render();root.querySelector('#cafe-play').focus();};
-   root.querySelector('#cafe-next').onclick=()=>{guest=(guest+1)%3;previous=null;screen='setup';render();root.querySelector('#cafe-play').focus();};
+   root.querySelector('#cafe-retry').onclick=()=>{previous=result;bean=result.bean;heat=result.heat||92;screen='setup';rememberSetup();render();root.querySelector('#cafe-play').focus();};
+   root.querySelector('#cafe-next').onclick=()=>{if(lesson==='free'){guest=(guest+1)%3;previous=null;screen='setup';rememberSetup();render();}else chooseLesson(learning().next);root.querySelector('#cafe-play').focus();};
   }
  }
- function setup(){return `<h2>${previous?tx('Thử lại cùng yêu cầu','Try the same order'):tx('Chọn hạt cho ly này','Choose this cup’s beans')}</h2><button class="cafe-start cafe-quick">${tx('Pha ngay với lựa chọn bên dưới','Brew with the choices below')}</button><div class="bean-options">${cafeBeans.map(b=>`<label><input type="radio" name="cafe-bean" value="${b.id}" ${bean===b.id?'checked':''}><strong>${at(b.name)}</strong><small>${at(b.notes)} · ${tx('Lô giả lập, không đại diện mọi hạt cùng xuất xứ.','Fictional lot, not representative of all beans from this origin.')}</small></label>`).join('')}</div><label>${tx('Nhiệt độ · một yếu tố ảnh hưởng chiết xuất','Temperature · one factor affecting extraction')}<select id="cafe-heat">${[88,92,96].map(n=>`<option ${heat===n?'selected':''}>${n}</option>`).join('')}</select></label>${previous?`<aside class="experiment">${hint(previous)}</aside>`:''}<button id="cafe-start" class="cafe-start">${tx('Vào bàn rót','Start pouring')}</button><p class="help">${tx('Khoảng 30 giây. Nhấn giữ để rót, thả để nước rút. Không cần dụng cụ thật.','About 30 seconds. Hold to pour; release to let water drain. No equipment needed.')}</p>`;}
- function pour(){return `<h2>${tx('Tự tay rót ly của bạn','Pour your own cup')}</h2><p>${tx('12 g cà phê · 180 ml nước · cỡ xay cố định. Nhấn giữ để rót, thả để chờ nước rút. Đồng hồ chạy từ giọt đầu.','12 g coffee · 180 ml water · fixed grind. Hold to pour, release to drain. The clock starts with the first water.')}</p>${timers(state,true)}<div class="live-brew" aria-hidden="true"><div class="kettle"><span class="kettle-spout"></span><span class="kettle-handle"></span></div><div class="pour-stream"></div><div class="live-filter"><span class="spill-line"></span><div class="live-water"></div><div class="live-grounds"></div></div><div class="drawdown-stream"></div><div class="overflow-stream"></div><div class="live-cup"><div></div></div></div><div class="live-stats"><span>${tx('Trong ly','In cup')}: <b id="live-beverage">0</b> ml</span><span>${tx('Đã rót','Poured')}: <b id="live-volume">0</b>/180 ml</span><span>${tx('Tràn','Spilled')}: <b id="live-spill">0</b> ml</span></div><progress id="live-progress" max="180" value="0" aria-label="${tx('Lượng nước đã rót','Water poured')}"></progress><p id="live-status" role="status">${tx('Sẵn sàng. Nhấn giữ để bắt đầu.','Ready. Hold to begin.')}</p><button id="hold-pour" class="hold-pour">${tx('Nhấn giữ để rót','Hold to pour')}</button><button id="toggle-pour" class="secondary">${tx('Bật / tắt rót bằng một lần chạm','Toggle pouring with one tap')}</button><p class="help">${tx('Bàn phím: giữ Space trên nút rót. Nút bật/tắt hỗ trợ thao tác không cần giữ. Chuyển ứng dụng sẽ tạm dừng.','Keyboard: hold Space on the pour button. Use the toggle for hold-free control. Switching apps pauses the game.')}</p><button id="cafe-abort" class="secondary">${tx('Pha lại từ đầu','Restart this cup')}</button>`;}
- function outcome(){const b=cafeBeans.find(b=>b.id===result.bean);const response=result.fit==='great'?tx('“Đúng gu tôi rồi! Cảm ơn bạn.”','“That’s my kind of coffee! Thank you.”'):result.fit==='close'?tx('“Khá gần rồi. Chỉnh một chút nữa nhé?”','“Pretty close. Could you adjust it a little?”'):tx('“Ly này có cá tính, nhưng chưa hợp gu tôi.”','“An interesting cup, but not quite my taste.”');
- return `<h2>${tx('Ly của bạn đã sẵn sàng','Your cup is ready')}</h2><div class="finished-cup" aria-hidden="true">☕</div><p class="guest-response">${response}</p><p>${at(b.name)} · ${result.heat}°C · ${tx('hương vị tương đối trong game','relative in-game flavor')}</p>${meters(result.flavor)}${timers(result)}<p>${tx('Giả định trò chơi, chưa hiệu chuẩn: chua/đắng giữ theo hồ sơ lô hạt hư cấu, không được tính từ cách pha. Chỉ nồng độ giả lập thay đổi theo phần chất hòa tan và lượng đồ uống. Không dùng kết quả này để dự đoán ly thật.','Uncalibrated game assumptions: acidity/bitterness stay fixed to the fictional lot profile, not inferred from brewing. Only fictional strength changes with dissolved material and beverage volume. These results do not predict a real cup.')}</p><p>${tx('Lượt này','This cup')}: ${cafeClock(result.contact)} ${tx('tiếp xúc khi có nước','wet contact')} · ${result.beverage} ml ${tx('trong ly','in cup')} · ${result.overflow} ml ${tx('tràn','spilled')}. ${tx('Chỉ số hòa tan giả lập · ngưỡng thiết kế','Fictional dissolution index · design thresholds')}: ${zoneLabel(result)}. ${tx('Mô hình giữ lại khoảng 24 ml nước trong bột; lượng nước rót không bằng lượng đồ uống.','The model retains about 24 ml in the grounds; poured water is not beverage yield.')}</p>${timeline(result)}${previous?`<div class="cup-comparison"><h3>${tx('Hai ly khác nhau ở đâu?','What changed between cups?')}</h3><p>${tx('Ly trước → ly này','Previous → current')}: ${at(cafeBeans.find(b=>b.id===previous.bean).name)} ${previous.heat}°C → ${at(b.name)} ${result.heat}°C</p>${labels().map((l,i)=>`<p>${l}: <b>${level(previous.flavor[i])} → ${level(result.flavor[i])}</b> ${previous.flavor[i]===result.flavor[i]?tx('(chưa đổi mức)','(same level)'):''}</p>`).join('')}<p class="help">${tx('Các mức hương vị là khoảng tương đối; cùng mức không có nghĩa hai ly giống hệt.','Flavor levels are broad bands; the same level does not mean identical cups.')}</p><p>${tx('Tổng thời gian','Total time')}: ${cafeClock(previous.time)} → ${cafeClock(result.time)}</p><p>${tx('Thời gian rót','Pouring time')}: ${cafeClock(previous.pourTime)} → ${cafeClock(result.pourTime)}</p><p>${tx('Thời gian chờ','Waiting time')}: ${cafeClock(previous.waitTime)} → ${cafeClock(result.waitTime)}</p><p>${tx('Tiếp xúc khi có nước','Wet contact')}: ${cafeClock(previous.contact)} → ${cafeClock(result.contact)}</p><p>${tx('Số nhịp rót','Pouring pulses')}: ${previous.holds} → ${result.holds}</p><p>${tx('Trong ly','In cup')}: ${previous.beverage} → ${result.beverage} ml</p><p>${tx('Nước tràn','Spilled')}: ${previous.overflow} → ${result.overflow} ml</p></div>`:''}<aside class="experiment">${hint(result)}</aside><div class="actions"><button id="cafe-retry">${tx('Pha lại & so sánh hai ly','Brew again & compare')}</button><button id="cafe-next" class="secondary">${tx('Đón khách tiếp theo','Next guest')}</button></div><details class="optional-note"><summary>${tx('Ghi một điều khám phá · tùy chọn','Note a discovery · optional')}</summary><label>${tx('Tôi nhận ra…','I noticed…')}<textarea id="cafe-note" maxlength="1000">${String(result.note||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</textarea></label><button id="save-cafe-note">${tx('Lưu ghi chú','Save note')}</button><p id="cafe-note-status" role="status"></p></details>`;
+ function setup(){return `<h2>${currentLesson()?at(currentLesson().title):tx('Luyện theo nhịp của bạn','Practice your own rhythm')}</h2><p class="challenge-goal">${currentLesson()?at(currentLesson().goal):tx('Luyện rót ít tràn, thử nhịp khác hoặc pha lại công thức đã đánh dấu.','Practice reducing overflow, explore a new rhythm, or repeat your bookmarked recipe.')}</p>${lesson==='free'?`<label>${tx('Khách trong lượt tự do','Free-play guest')}<select id="free-guest">${cafeGuests.map((g,i)=>`<option value="${i}" ${guest===i?'selected':''}>${g.name}</option>`).join('')}</select></label>`:''}<button class="cafe-start cafe-quick">${tx('Pha ngay với lựa chọn bên dưới','Brew with the choices below')}</button><div class="bean-options">${cafeBeans.map(b=>`<label><input type="radio" name="cafe-bean" value="${b.id}" ${bean===b.id?'checked':''}><strong>${at(b.name)}</strong><small>${at(b.notes)} · ${tx('Lô giả lập, không đại diện mọi hạt cùng xuất xứ.','Fictional lot, not representative of all beans from this origin.')}</small></label>`).join('')}</div><label>${tx('Nhiệt độ · một yếu tố ảnh hưởng chiết xuất','Temperature · one factor affecting extraction')}<select id="cafe-heat">${[88,92,96].map(n=>`<option ${heat===n?'selected':''}>${n}</option>`).join('')}</select></label>${previous?`<aside class="experiment">${hint(previous)}</aside>`:''}<button id="cafe-start" class="cafe-start">${tx('Vào bàn rót','Start pouring')}</button><p class="help">${tx('Khoảng 30 giây. Nhấn giữ để rót, thả để nước rút. Không cần dụng cụ thật.','About 30 seconds. Hold to pour; release to let water drain. No equipment needed.')}</p>`;}
+ function pour(){return `<h2>${currentLesson()?at(currentLesson().title):tx('Tự tay rót ly của bạn','Pour your own cup')}</h2>${currentLesson()?`<p class="challenge-goal">${at(currentLesson().goal)}</p>`:''}<p>${tx('12 g cà phê · 180 ml nước · cỡ xay cố định. Nhấn giữ để rót, thả để chờ nước rút. Đồng hồ chạy từ giọt đầu.','12 g coffee · 180 ml water · fixed grind. Hold to pour, release to drain. The clock starts with the first water.')}</p>${timers(state,true)}<div class="live-brew" aria-hidden="true"><div class="kettle"><span class="kettle-spout"></span><span class="kettle-handle"></span></div><div class="pour-stream"></div><div class="live-filter"><span class="spill-line"></span><div class="live-water"></div><div class="live-grounds"></div></div><div class="drawdown-stream"></div><div class="overflow-stream"></div><div class="live-cup"><div></div></div></div><div class="live-stats"><span>${tx('Trong ly','In cup')}: <b id="live-beverage">0</b> ml</span><span>${tx('Đã rót','Poured')}: <b id="live-volume">0</b>/180 ml</span><span>${tx('Tràn','Spilled')}: <b id="live-spill">0</b> ml</span></div><progress id="live-progress" max="180" value="0" aria-label="${tx('Lượng nước đã rót','Water poured')}"></progress><p id="live-status" role="status">${tx('Sẵn sàng. Nhấn giữ để bắt đầu.','Ready. Hold to begin.')}</p><button id="hold-pour" class="hold-pour">${tx('Nhấn giữ để rót','Hold to pour')}</button><button id="toggle-pour" class="secondary">${tx('Bật / tắt rót bằng một lần chạm','Toggle pouring with one tap')}</button><p class="help">${tx('Bàn phím: giữ Space trên nút rót. Nút bật/tắt hỗ trợ thao tác không cần giữ. Chuyển ứng dụng sẽ tạm dừng.','Keyboard: hold Space on the pour button. Use the toggle for hold-free control. Switching apps pauses the game.')}</p><button id="cafe-abort" class="secondary">${tx('Pha lại từ đầu','Restart this cup')}</button>`;}
+ function renderActions(){return `<div class="actions"><button id="cafe-retry">${tx('Pha lại & so sánh hai ly','Brew again & compare')}</button><button id="cafe-next" class="secondary" ${lesson!=='free'&&!learning().completed.includes(lesson)?'disabled':''}>${lesson==='free'?tx('Đổi khách · chơi tự do','Change guest · free play'):learning().completed.length===3?tx('Xem ba khám phá','View your three discoveries'):tx('Khám phá tiếp theo','Next discovery')}</button><button id="counter-bookmark" class="secondary" ${!savedResult()?'disabled':''}>${book.favoriteId===result.id?tx('✓ Đã đánh dấu công thức','✓ Recipe bookmarked'):tx('Đánh dấu công thức','Bookmark recipe')}</button>${!savedResult()?`<button id="counter-save-again">${tx('Thử lưu tiến độ lại','Retry saving progress')}</button>`:''}</div>`;}
+ function outcome(){const b=cafeBeans.find(b=>b.id===result.bean);const response=result.fit===undefined?tx('Lượt cũ chưa lưu phản hồi của khách.','This older cup has no saved guest response.'):result.fit==='great'?tx('“Đúng gu tôi rồi! Cảm ơn bạn.”','“That’s my kind of coffee! Thank you.”'):result.fit==='close'?tx('“Khá gần rồi. Chỉnh một chút nữa nhé?”','“Pretty close. Could you adjust it a little?”'):tx('“Ly này có cá tính, nhưng chưa hợp gu tôi.”','“An interesting cup, but not quite my taste.”');
+ return `<h2>${tx('Ly của bạn đã sẵn sàng','Your cup is ready')}</h2><div class="finished-cup" aria-hidden="true">☕</div><p class="guest-response">${response}</p><p>${at(b.name)} · ${result.heat}°C · ${tx('hương vị tương đối trong game','relative in-game flavor')}</p>${renderSkill()}${renderLearning()}${renderActions()}<p class="help">${tx('Mức vị giả định của game, không dự đoán ly thật.','Fictional game flavor bands, not predictions for a real cup.')}</p>${meters(result.flavor)}<details class="round-details"><summary>${tx('Thông số lượt này & giới hạn','Cup details & limits')}</summary>${timers(result)}<p>${tx('Giả định trò chơi, chưa hiệu chuẩn: chua/đắng giữ theo hồ sơ lô hạt hư cấu, không được tính từ cách pha. Chỉ nồng độ giả lập thay đổi theo phần chất hòa tan và lượng đồ uống. Không dùng kết quả này để dự đoán ly thật.','Uncalibrated game assumptions: acidity/bitterness stay fixed to the fictional lot profile, not inferred from brewing. Only fictional strength changes with dissolved material and beverage volume. These results do not predict a real cup.')}</p><p>${tx('Lượt này','This cup')}: ${cafeClock(result.contact)} ${tx('tiếp xúc khi có nước','wet contact')} · ${result.beverage??'—'} ml ${tx('trong ly','in cup')} · ${result.overflow} ml ${tx('tràn','spilled')}. ${tx('Chỉ số hòa tan giả lập · ngưỡng thiết kế','Fictional dissolution index · design thresholds')}: ${zoneLabel(result)}. ${tx('Mô hình giữ lại khoảng 24 ml nước trong bột; lượng nước rót không bằng lượng đồ uống.','The model retains about 24 ml in the grounds; poured water is not beverage yield.')}</p>${timeline(result)}</details>${previous?`<div class="cup-comparison"><h3>${tx('Hai ly khác nhau ở đâu?','What changed between cups?')}</h3><p>${tx('Ly trước → ly này','Previous → current')}: ${at(cafeBeans.find(b=>b.id===previous.bean).name)} ${previous.heat}°C → ${at(b.name)} ${result.heat}°C</p>${labels().map((l,i)=>`<p>${l}: <b>${level(previous.flavor[i])} → ${level(result.flavor[i])}</b> ${previous.flavor[i]===result.flavor[i]?tx('(chưa đổi mức)','(same level)'):''}</p>`).join('')}<p class="help">${tx('Các mức hương vị là khoảng tương đối; cùng mức không có nghĩa hai ly giống hệt.','Flavor levels are broad bands; the same level does not mean identical cups.')}</p><p>${tx('Tổng thời gian','Total time')}: ${cafeClock(previous.time)} → ${cafeClock(result.time)}</p><p>${tx('Thời gian rót','Pouring time')}: ${cafeClock(previous.pourTime)} → ${cafeClock(result.pourTime)}</p><p>${tx('Thời gian chờ','Waiting time')}: ${cafeClock(Math.floor(previous.time)-Math.floor(previous.pourTime))} → ${cafeClock(Math.floor(result.time)-Math.floor(result.pourTime))}</p><p>${tx('Tiếp xúc khi có nước','Wet contact')}: ${cafeClock(previous.contact)} → ${cafeClock(result.contact)}</p><p>${tx('Số nhịp rót','Pouring pulses')}: ${previous.holds} → ${result.holds}</p><p>${tx('Trong ly','In cup')}: ${previous.beverage} → ${result.beverage??'—'} ml</p><p>${tx('Nước tràn','Spilled')}: ${previous.overflow} → ${result.overflow} ml</p></div>`:''}<aside class="experiment">${hint(result)}</aside><details class="optional-note"><summary>${tx('Ghi một điều khám phá · tùy chọn','Note a discovery · optional')}</summary><label>${tx('Tôi nhận ra…','I noticed…')}<textarea id="cafe-note" maxlength="1000">${String(result.note||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</textarea></label><button id="save-cafe-note">${tx('Lưu ghi chú','Save note')}</button><p id="cafe-note-status" role="status"></p></details>`;
  }
  function stopHolding(){holding=false;toggle=false;}
  function bindPour(){
@@ -281,11 +421,12 @@ function mountCafe(){
   root.querySelector('#toggle-pour').onclick=()=>{toggle=!toggle;};
   root.querySelector('#cafe-abort').onclick=()=>{cancelAnimationFrame(frame);stopHolding();screen='setup';render();};
  }
- function bindNote(){root.querySelector('#save-cafe-note').onclick=()=>{result.note=root.querySelector('#cafe-note').value;try{localStorage.setItem('c6s.cafe.v1',JSON.stringify(rounds));root.querySelector('#cafe-note-status').textContent=tx('Đã lưu.','Saved.');}catch{root.querySelector('#cafe-note-status').textContent=tx('Không lưu được trên trình duyệt này. Hãy sao chép ghi chú.','Unable to save here. Please copy your note.');}};}
+ function bindNote(){root.querySelector('#save-cafe-note').onclick=()=>{const updated={...result,note:root.querySelector('#cafe-note').value};const next=savedResult()?{...book,rounds:rounds.map(r=>r.id===result.id?updated:r)}:addCounterRound(book,updated);if(writeBook(next)){const open=root.querySelector('.optional-note').open;result=updated;render();root.querySelector('.optional-note').open=open;root.querySelector('#cafe-note-status').textContent=tx('Đã lưu.','Saved.');}else{root.querySelector('#cafe-note-status').textContent=tx('Chưa lưu được. Hãy thử lại hoặc tải bản sao.','Not saved. Retry or download a backup.');}};}
  function tick(now){
-  const dt=Math.min((now-last)/1000,.1);last=now;
+  const dt=cafeFrameDelta(now,last);last=now;
   if(!document.hidden)state=cafeTick(state,holding||toggle,dt);
-  if(state.done){stopHolding();window.dispatchEvent(new Event('c6s-simulation-result'));result=cafeResult(state,guest);rounds.push(result);rounds=rounds.slice(-30);try{localStorage.setItem('c6s.cafe.v1',JSON.stringify(rounds));}catch{}screen='result';render();root.querySelector('#cafe-play').focus();return;}
+  if(state.done){stopHolding();window.dispatchEvent(new Event('c6s-simulation-result'));result={...cafeResult(state,guest),id:globalThis.crypto?.randomUUID?.()||`cup-${Date.now()}-${Math.random().toString(36).slice(2)}`,date:new Date().toISOString(),lesson:playedLesson,baselineId:previous?.id||null};writeBook(addCounterRound(book,result));screen='result';render();root.querySelector('#cafe-play').focus();return;}
+
   root.querySelector('#live-volume').textContent=state.poured>=180?180:Math.floor(state.poured);root.querySelector('#live-beverage').textContent=Math.round(state.drained);root.querySelector('#live-clock').textContent=cafeClock(state.time);root.querySelector('#live-pour-clock').textContent=cafeClock(state.pourTime);root.querySelector('#live-wait-clock').textContent=cafeClock(Math.floor(state.time)-Math.floor(state.pourTime));root.querySelector('#live-spill').textContent=Math.round(state.overflow);root.querySelector('#live-progress').value=state.poured;
   root.querySelector('.live-water').style.height=`${state.water/64*100}%`;root.querySelector('.live-cup>div').style.height=`${state.drained/180*100}%`;
   root.querySelector('.live-brew').classList.toggle('is-draining',state.water>.5);root.querySelector('.live-brew').classList.toggle('is-overflowing',(holding||toggle)&&state.water>62);
@@ -294,7 +435,8 @@ function mountCafe(){
   root.querySelector('#hold-pour').disabled=state.poured>=180;root.querySelector('#toggle-pour').disabled=state.poured>=180;root.querySelector('#toggle-pour').setAttribute('aria-pressed',String(toggle));
   frame=requestAnimationFrame(tick);
  }
- window.addEventListener('blur',stopHolding);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopHolding();else last=performance.now();});
+ window.addEventListener('blur',stopHolding);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopHolding();else last=null;});
+ window.addEventListener('c6s-journal-changed',()=>{const area=root.querySelector('#counter-progress');if(area)area.innerHTML=renderProgress();});
  render();
  mountRealBrew(lang);
 }
@@ -306,15 +448,17 @@ function nextExperiment(bean, parameters) {
   const names = { dose: 'dose', water: 'water volume', temp: 'temperature', grind: 'grind setting' };
   return `Try ${parameters[field] > bean.target[field] ? 'lowering' : 'raising'} your ${names[field]} next. Keep the other settings unchanged to compare the effect. This hint follows the game model, not a measured extraction.`;
 }
-function progression(sessions) {
+function progression(sessions, counterRounds = []) {
   const discoveries = sessions.filter(s => typeof s.discovery === 'string' && s.discovery.trim()).length;
-  const xp = sessions.length * 10 + discoveries * 5;
+  const xp = sessions.length * 10 + discoveries * 5 + counterProgress(counterRounds).xp;
+  const practices=[...sessions,...counterRounds];
+  const allDiscoveries=discoveries+counterProgress(counterRounds).completed.length+counterRounds.filter(r=>r.note?.trim()).length;
   const level = Math.floor(xp / 50) + 1;
   const badges = [
-    { name: 'First cup', hint: 'Save your first brew', earned: sessions.length >= 1 },
-    { name: 'Curious taster', hint: 'Record three discoveries', earned: discoveries >= 3 },
-    { name: 'Bean explorer', hint: 'Save brews with all three starter beans', earned: ['ethiopia', 'colombia', 'brazil'].every(id => sessions.some(s => s.bean === id)) },
-    { name: 'Practice makes progress', hint: 'Save five brews', earned: sessions.length >= 5 }
+    { name: 'First cup', hint: 'Save your first brew', earned: practices.length >= 1 },
+    { name: 'Curious taster', hint: 'Record three discoveries', earned: allDiscoveries >= 3 },
+    { name: 'Bean explorer', hint: 'Save brews with all three starter beans', earned: ['ethiopia', 'colombia', 'brazil'].every(id => practices.some(s => s.bean === id)) },
+    { name: 'Practice makes progress', hint: 'Save five brews', earned: practices.length >= 5 }
   ];
   return { xp, level, remaining: 50 - xp % 50, progress: xp % 50, badges };
 }
@@ -477,10 +621,10 @@ const copy = {
     "desk": "Bàn pha cà phê",
     "memory": "Nhật ký cà phê",
     "journey": "Hành trình của bạn",
-    "quests": "Nhiệm vụ pha cà phê",
+    "quests": "Bài tập nhật ký · tùy chọn",
     "level": "Cấp",
     "nextLevel": "XP để lên cấp",
-    "xpText": "Mỗi phiên đã lưu: 10 XP. Mỗi phát hiện: thêm 5 XP. Tiến bộ đến từ luyện tập.",
+    "xpText": "Mỗi ly quầy/phiên nhật ký đã lưu: 10 XP. Ghi chú khám phá: +5 XP. Mỗi khám phá quầy lần đầu: +15 XP.",
     "bean": "Hạt cà phê",
     "floral": "Hương hoa · Cam chanh",
     "caramel": "Caramel · Trái cây đỏ",
@@ -560,7 +704,7 @@ const copy = {
     "noNotes": "Chưa có ghi chú",
     "noTechnique": "Chưa ghi cách rót",
     "compareHelp": "Điểm mô phỏng và cảm nhận cá nhân là hai thông tin riêng biệt. Không so trung bình của các loại ghi chép như một điểm chất lượng. Điểm ở mô hình cũ và mô hình lựa chọn mới không tương đương trực tiếp.",
-    "questHelp": "Hoàn thành theo thứ tự. Nhật ký đã có cũng được tính vào tiến độ.",
+    "questHelp": "Luyện ghi chép công thức theo thứ tự. Nhật ký đã có cũng được tính; lộ trình ba khám phá nằm ở quầy.",
     "complete": "Hoàn thành",
     "locked": "Chưa mở",
     "current": "Nhiệm vụ tiếp theo",
@@ -685,10 +829,10 @@ const copy = {
     "desk": "Coffee Desk",
     "memory": "Coffee Memory",
     "journey": "Your coffee journey",
-    "quests": "Brew quests",
+    "quests": "Journal exercises · optional",
     "level": "Level",
     "nextLevel": "XP to next level",
-    "xpText": "Earn 10 XP per saved brew and 5 more per discovery. Progress rewards practice.",
+    "xpText": "Each saved counter cup/journal brew: 10 XP. Discovery note: +5 XP. Each first counter discovery: +15 XP.",
     "bean": "Bean",
     "floral": "Floral · Citrus",
     "caramel": "Caramel · Red fruit",
@@ -768,7 +912,7 @@ const copy = {
     "noNotes": "No tasting notes",
     "noTechnique": "Technique not recorded",
     "compareHelp": "Simulation scores and personal impressions are separate. Means from different journal modes are not a quality comparison. Scores from the earlier model and the decision model are not directly equivalent.",
-    "questHelp": "Follow the quests in order. Existing Coffee Memory counts toward progress.",
+    "questHelp": "Practice recipe journaling in order. Existing memories count; the three-discovery path is at the counter.",
     "complete": "Complete",
     "locked": "Locked",
     "current": "Your next quest",
@@ -1091,9 +1235,11 @@ function renderHistory() {
 }
 function render() {
   document.documentElement.lang=language;
-  const journey=progression(sessions), missions=missionProgress(sessions), active=missions.find(m=>!m.complete&&!m.locked);
+  let counterRounds=[];try{counterRounds=loadCounter(localStorage.getItem(counterKey),localStorage.getItem(oldCounterKey)).store.rounds;}catch{}
+  const journey=progression(sessions,counterRounds), missions=missionProgress(sessions), active=missions.find(m=>!m.complete&&!m.locked);
   app.innerHTML=`<main><header><div class="section-head"><span class="eyebrow">THE COFFEE SIX SENSE · PHASE 1</span><label class="language">${t('language')}<select id="language"><option value="vi" ${language==='vi'?'selected':''}>Tiếng Việt</option><option value="en" ${language==='en'?'selected':''}>English</option></select></label></div><h1>${t('title')}</h1><p>${t('intro')}</p><details class="guide"><summary>${t('guide')}</summary><p>${t('guideText')}</p></details></header>${!journal.writable?`<div class="warning" role="alert"><p>${t('storageError')}</p>${journal.raw!==undefined?`<button id="recovery" type="button">${t('recovery')}</button>`:''}</div>`:''}<section class="panel" id="desk" aria-labelledby="desk-title"><h2 id="desk-title" tabindex="-1">${t('desk')}</h2><ol class="steps">${['configure','pouring','tasting','saved'].map(k=>`<li ${stage===k?'aria-current="step"':''}>${t(k)}</li>`).join('')}</ol><p id="recipe-message" role="status">${esc(retryGoal&&retrySource&&(stage==='configure'||stage==='pouring')?pourGoalText(retryGoal,retrySource):message)}</p><div id="result">${renderDesk()}</div></section><div id="bean-library"></div><section class="panel journey" aria-labelledby="journey-title"><h2 id="journey-title">${t('journey')}</h2><p><strong>${t('level')} ${journey.level}</strong> · ${journey.xp} XP · ${journey.remaining} ${t('nextLevel')}</p><progress max="50" value="${journey.progress}" aria-label="${t('nextLevel')}"></progress><p>${t('xpText')}</p><details><summary>${t('journey')} · ${journey.badges.filter(b=>b.earned).length}/4</summary><ul class="badges">${journey.badges.map(b=>`<li class="${b.earned?'earned':''}"><strong>${b.earned?'✓':'○'} ${t(b.name)}</strong><small>${t(b.hint)}</small></li>`).join('')}</ul></details></section><section class="panel missions"><div class="section-head"><h2>${t('quests')}</h2><span>${missions.filter(m=>m.complete&&!m.locked).length} / 4 ${t('complete')}</span></div><p>${t('questHelp')}</p><ol class="quest-list">${missions.map(m=>`<li class="quest ${m.locked?'locked':m.complete?'complete':'active'}"><div><strong>${t(m.locked?'locked':m.complete?'complete':'current')} · ${t(m.id+'Title')}</strong><p>${t(m.id+'Description')}</p><span>${m.count} / ${m.total}</span></div>${!m.complete&&!m.locked?`<button id="start-quest" type="button">${t(m.id==='experiment'&&sessions.length?'lastRecipe':'startQuest')}</button>`:''}</li>`).join('')}</ol>${!active?`<p id="quest-message">${t('allQuests')}</p>`:''}</section>${renderHistory()}<footer>${t('disclaimer')}</footer></main>`;
   bind(active);
+  window.dispatchEvent(new Event('c6s-journal-changed'));
   renderBeanLibrary({language,onChange:()=>{capture();render();},onBrew:id=>changeRecipe({bean:id,parameters:{...coffeeBeans[0].target},technique:'pulse'},t('customHint'))});
 }
 function changeRecipe(session, prompt='') {
@@ -1158,6 +1304,7 @@ render();
 
 initializeBeanLibrary().then(()=>{capture();render();});
 
-mountCafe();
+window.addEventListener('c6s-counter-changed',()=>{capture();render();});
+mountCafe({getJournalSessions:()=>sessions});
 
 </script></body></html>
