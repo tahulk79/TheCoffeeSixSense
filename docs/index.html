@@ -105,9 +105,9 @@ function mountCafe(){
  function stopHolding(){holding=false;toggle=false;}
  function bindPour(){
   const button=root.querySelector('#hold-pour');
-  button.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();button.setPointerCapture(e.pointerId);if(!holding)state.holds++;holding=true;};
+  button.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();button.setPointerCapture(e.pointerId);toggle=false;if(!holding)state.holds++;holding=true;};
   button.onpointerup=button.onpointercancel=button.onlostpointercapture=()=>{holding=false;};
-  button.onkeydown=e=>{if((e.code==='Space'||e.code==='Enter')&&!e.repeat){e.preventDefault();state.holds++;holding=true;}};
+  button.onkeydown=e=>{if((e.code==='Space'||e.code==='Enter')&&!e.repeat){e.preventDefault();toggle=false;state.holds++;holding=true;}};
   button.onkeyup=e=>{if(e.code==='Space'||e.code==='Enter'){e.preventDefault();holding=false;}};button.onblur=()=>{holding=false;};
   root.querySelector('#toggle-pour').onclick=()=>{toggle=!toggle;if(toggle)state.holds++;};
   root.querySelector('#cafe-abort').onclick=()=>{cancelAnimationFrame(frame);stopHolding();screen='setup';render();};
