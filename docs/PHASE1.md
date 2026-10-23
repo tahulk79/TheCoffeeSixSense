@@ -84,3 +84,17 @@ See [SCIENCE.md](SCIENCE.md) for evidence status, the blocked original-source re
 ## Supplied-source review completed
 
 The scientific paper/supplement, S1/S5 CSVs and WCR/SCAE/SCA documents supplied on 2026-10-23 have been reviewed. [Detailed findings](evidence/2020-temperature-review.md) replace the earlier pending-source status; this does not calibrate the game or create an ML predictor. Actual-brew forms now support optional serving temperature and holding time, and explicitly identify their casual 1–5 sensory scale. Existing records without those fields remain readable and exportable unchanged.
+
+## Counter journey and return-visit revision
+
+The counter has a finite three-discovery path. An asks the player to keep overflow at or below 1 ml, independent of the fictional taste result. Linh asks for two cups with the same bean/temperature but a changed rhythm, followed by reading the observed beverage-yield difference. Minh combines the fictional guest preference with low overflow. The path ends with a visible recap and free play instead of silently cycling back to the first guest. These are game learning goals, not physical brewing standards or proof of scientific skill.
+
+A clean pour is recognized separately from guest satisfaction. Retry shows actual game-yield and overflow differences even when the coarse flavor bands are unchanged. Home shows the last cup, saved discovery note, three-discovery progress, recent cups and a bookmarked recipe. Return visits restore the current goal; an unfinished comparison can be reopened without brewing again. Notes and saved recipes remain local, optional and separate from actual-brew observations.
+
+`c6s.counter.v1` is the authoritative atomic store for saved rounds, the current setup and bookmarked round. Existing `c6s.cafe.v1` arrays are imported with stable IDs and unknown dates kept null; that original key is never overwritten or deleted. Old rounds do not retroactively invent discovery completions. Corrupt data is protected and can be downloaded for recovery. Storage failures retain the unsaved result, offer retry/backup, and award no XP until saved. IDs prevent duplicate round inserts. History is not silently truncated.
+
+Counter and legacy-journal XP/badges share one progression calculation while their records stay separate. Saved practice earns 10 XP, a saved discovery note adds 5 XP and each first completed counter discovery adds 15 XP once. Legacy journal exercises remain explicitly optional and journal-specific. Actual-brew research observations do not receive new game rewards or enter the simulation history.
+
+The animation loop initializes from its first RAF timestamp, clamps backward deltas to zero and resets its clock on visibility changes. It no longer feeds negative time into the simulation when a click-time `performance.now()` is later than an initial RAF timestamp. A real-browser-clock test starts six independent rounds and completes one end-to-end without Playwright time mocking, in addition to accelerated campaign checks. Unit checks exercise backward/first/gapped timestamps, discovery criteria, migration, corrupt data and shared progression.
+
+Run `PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-counter-journey.mjs` for campaign/revisit/quota tests, `scripts/smoke-cafe.mjs` for free-play input/clock regression and `scripts/smoke-real-brew.mjs` for the separate empirical-data flow. These checks validate the mechanics and return state, not human enjoyment or real retention rates.

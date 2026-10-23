@@ -1,3 +1,4 @@
+import { loadCounter, counterKey, oldCounterKey } from './counter-progress.js';
 import { mountCafe } from './cafe-ui.js';
 import { createPourRun, pourSituation, choosePourAction, pourSummary, gameplayScore, nextPourGoal } from './pour-game.js';
 import { initializeBeanLibrary, getPersonalBeans, renderBeanLibrary } from './bean-library.js';
@@ -94,9 +95,11 @@ function renderHistory() {
 }
 function render() {
   document.documentElement.lang=language;
-  const journey=progression(sessions), missions=missionProgress(sessions), active=missions.find(m=>!m.complete&&!m.locked);
+  let counterRounds=[];try{counterRounds=loadCounter(localStorage.getItem(counterKey),localStorage.getItem(oldCounterKey)).store.rounds;}catch{}
+  const journey=progression(sessions,counterRounds), missions=missionProgress(sessions), active=missions.find(m=>!m.complete&&!m.locked);
   app.innerHTML=`<main><header><div class="section-head"><span class="eyebrow">THE COFFEE SIX SENSE · PHASE 1</span><label class="language">${t('language')}<select id="language"><option value="vi" ${language==='vi'?'selected':''}>Tiếng Việt</option><option value="en" ${language==='en'?'selected':''}>English</option></select></label></div><h1>${t('title')}</h1><p>${t('intro')}</p><details class="guide"><summary>${t('guide')}</summary><p>${t('guideText')}</p></details></header>${!journal.writable?`<div class="warning" role="alert"><p>${t('storageError')}</p>${journal.raw!==undefined?`<button id="recovery" type="button">${t('recovery')}</button>`:''}</div>`:''}<section class="panel" id="desk" aria-labelledby="desk-title"><h2 id="desk-title" tabindex="-1">${t('desk')}</h2><ol class="steps">${['configure','pouring','tasting','saved'].map(k=>`<li ${stage===k?'aria-current="step"':''}>${t(k)}</li>`).join('')}</ol><p id="recipe-message" role="status">${esc(retryGoal&&retrySource&&(stage==='configure'||stage==='pouring')?pourGoalText(retryGoal,retrySource):message)}</p><div id="result">${renderDesk()}</div></section><div id="bean-library"></div><section class="panel journey" aria-labelledby="journey-title"><h2 id="journey-title">${t('journey')}</h2><p><strong>${t('level')} ${journey.level}</strong> · ${journey.xp} XP · ${journey.remaining} ${t('nextLevel')}</p><progress max="50" value="${journey.progress}" aria-label="${t('nextLevel')}"></progress><p>${t('xpText')}</p><details><summary>${t('journey')} · ${journey.badges.filter(b=>b.earned).length}/4</summary><ul class="badges">${journey.badges.map(b=>`<li class="${b.earned?'earned':''}"><strong>${b.earned?'✓':'○'} ${t(b.name)}</strong><small>${t(b.hint)}</small></li>`).join('')}</ul></details></section><section class="panel missions"><div class="section-head"><h2>${t('quests')}</h2><span>${missions.filter(m=>m.complete&&!m.locked).length} / 4 ${t('complete')}</span></div><p>${t('questHelp')}</p><ol class="quest-list">${missions.map(m=>`<li class="quest ${m.locked?'locked':m.complete?'complete':'active'}"><div><strong>${t(m.locked?'locked':m.complete?'complete':'current')} · ${t(m.id+'Title')}</strong><p>${t(m.id+'Description')}</p><span>${m.count} / ${m.total}</span></div>${!m.complete&&!m.locked?`<button id="start-quest" type="button">${t(m.id==='experiment'&&sessions.length?'lastRecipe':'startQuest')}</button>`:''}</li>`).join('')}</ol>${!active?`<p id="quest-message">${t('allQuests')}</p>`:''}</section>${renderHistory()}<footer>${t('disclaimer')}</footer></main>`;
   bind(active);
+  window.dispatchEvent(new Event('c6s-journal-changed'));
   renderBeanLibrary({language,onChange:()=>{capture();render();},onBrew:id=>changeRecipe({bean:id,parameters:{...coffeeBeans[0].target},technique:'pulse'},t('customHint'))});
 }
 function changeRecipe(session, prompt='') {
@@ -161,4 +164,5 @@ render();
 
 initializeBeanLibrary().then(()=>{capture();render();});
 
-mountCafe();
+window.addEventListener('c6s-counter-changed',()=>{capture();render();});
+mountCafe({getJournalSessions:()=>sessions});
