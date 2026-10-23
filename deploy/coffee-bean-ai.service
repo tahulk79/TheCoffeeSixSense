@@ -1,0 +1,24 @@
+[Unit]
+Description=Coffee Six Sense label extraction
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=coffee-ai
+Group=coffee-ai
+WorkingDirectory=/opt/coffee-bean-ai
+EnvironmentFile=/etc/coffee-bean-ai.env
+ExecStart=/usr/bin/node /opt/coffee-bean-ai/server/index.mjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+StateDirectory=coffee-bean-ai
+ReadWritePaths=/var/lib/coffee-bean-ai
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
