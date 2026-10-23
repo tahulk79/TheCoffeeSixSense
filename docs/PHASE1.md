@@ -58,3 +58,11 @@ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-pour-game.mjs
 ```
 
 It exercises quick start, deliberate mistakes and feedback, same-scenario retry, one-change goals, score explanation, language switching, rapid double-click protection, keyboard choices and persisted reports at 360/768/1440px on Vite and Pages. Existing journal/OCR smoke tests use the same visible-choice helper.
+
+## Coffee counter revision
+
+The primary entry point is now a real-time counter game (`cafe-model.js`, `cafe-ui.js`). Three guests request distinct flavor profiles. Players choose one of three fictional bean profiles and 88/92/96°C, hold to pour 180 ml, release to drain, and avoid overflowing a 64 ml filter. A one-tap toggle is available for hold-free input. Space/Enter, pointer cancellation, window blur and document visibility are handled; hidden tabs pause the simulation. The timestep is bounded and the model conserves poured water between filter, cup and overflow.
+
+Results show acidity, bitterness and body, a guest response, contact time and spilled water. Bean base profiles, temperature, wet contact and overflow determine these fictional game values; they are not real taste predictions. Retry keeps the guest and recipe, permits a change, and compares both cups immediately. Saving a legacy journal is never required. Guest rotation has no XP gate. Counter results (latest 30) and optional discovery notes use a separate `c6s.cafe.v1` key; legacy journals, bean photos and OCR remain untouched in an optional studio. Reload retains saved counter results, not an unfinished cup.
+
+`npm test` includes water conservation, overflow/body and temperature/flavor tests. `PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-cafe.mjs` exercises the generated Pages artifact on mobile and desktop, including two cups, comparison, language changes, optional note saving, reload and studio access. This validates behavior, not player retention or enjoyment; those require observing new players.

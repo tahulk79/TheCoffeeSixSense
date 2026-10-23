@@ -6,8 +6,8 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH ||
 async function brew(page){await page.locator('#brew button[type=submit]').click();await finishPour(page);await page.locator('#taste').waitFor();}
 for(const path of ['/','/docs/index.html'])for(const width of [360,768,1440]){
  const context=await browser.newContext({viewport:{width,height:900},acceptDownloads:true});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(baseURL+path);
- assert.equal(await page.locator('html').getAttribute('lang'),'vi');assert.match(await page.locator('h1').innerText(),/Pha/);
+ await page.goto(baseURL+path);await page.locator('#studio-toggle').click();
+ assert.equal(await page.locator('html').getAttribute('lang'),'vi');assert.match(await page.locator('#app h1').innerText(),/Pha/);
  await page.locator('#recipe-controls summary').click();await page.locator('[name=water]').fill('0');await page.locator('#brew button[type=submit]').click();assert.equal(await page.locator('.pour-choice').count(),0);
  await page.locator('#reference').click();assert.equal(await page.locator('[name=water]').inputValue(),'300');
  await page.locator('#brew button[type=submit]').click();await chooseObservedPour(page);
@@ -19,7 +19,7 @@ for(const path of ['/','/docs/index.html'])for(const width of [360,768,1440]){
  await page.locator('#taste button[type=submit]').click();await page.locator('#saved-title').waitFor();assert.equal(await page.locator('.session').count(),1);assert.match(await page.locator('.journey').innerText(),/15 XP/);
  await page.locator('#again').click();assert.equal(await page.locator('[name=grind]').inputValue(),'18');await page.locator('[name=grind]').fill('19');await brew(page);
  await page.locator('[name=ratingMode]').selectOption('real');await page.locator('#sensory-details summary').click();await page.locator('[name=mood]').selectOption('5');await page.locator('#taste button[type=submit]').click();
- await page.reload();assert.equal(await page.locator('.session').count(),2);assert.match(await page.locator('.session').first().innerText(),/ly cà phê thật/);
+ await page.reload();await page.locator('#studio-toggle').click();assert.equal(await page.locator('.session').count(),2);assert.match(await page.locator('.session').first().innerText(),/ly cà phê thật/);
  await page.locator('.compare summary').click();assert.equal(await page.locator('#comparison tbody tr').count(),9);await page.locator('#compare-a').selectOption('1');assert.match(await page.locator('#comparison').innerText(),/Chọn hai/);
  const dl=page.waitForEvent('download');await page.locator('#export').click();assert.equal((await dl).suggestedFilename(),'coffee-memory.json');
  // Failed writes retain the draft and cannot give XP or create a duplicate session.
@@ -35,7 +35,7 @@ for(const path of ['/','/docs/index.html'])for(const width of [360,768,1440]){
 for(const invalid of [false,true]){
  const context=await browser.newContext();const page=await context.newPage();await page.goto(baseURL+'/docs/index.html');
  const raw=invalid?'{broken':JSON.stringify([{bean:'ethiopia',date:'2026-10-23T09:00:00Z',parameters:{dose:20,water:300,temp:94,grind:18},simulatedScore:100,notes:'Old note',taste:{aroma:3}}]);
- await page.evaluate(raw=>localStorage.setItem('c6s.sessions.v1',raw),raw);await page.reload();
+ await page.evaluate(raw=>localStorage.setItem('c6s.sessions.v1',raw),raw);await page.reload();await page.locator('#studio-toggle').click();
  if(invalid){await page.locator('#recovery').waitFor();await brew(page);assert.equal(await page.locator('#taste button[type=submit]').isDisabled(),true);assert.equal(await page.evaluate(()=>localStorage.getItem('c6s.sessions.v1')),raw);}
  else{assert.equal(await page.locator('.session').count(),1);assert.match(await page.locator('.session').innerText(),/chưa phân loại/);assert.equal(await page.locator('#quick-play').isVisible(),true);}
  await context.close();
