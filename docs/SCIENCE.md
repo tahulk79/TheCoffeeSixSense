@@ -13,17 +13,19 @@ Status: 2026-10-23. No empirical calibration dataset, trained model or validated
 | Game strength bands and guest acceptance | Game design | Not a brewing control chart or trained preference predictor. |
 | Real sensory ratings | User reports before analysis is opened | Not independently verified, not certified blind tasting. Liking is distinct from intensity; body is distinct from strength. |
 
-## Primary-source register: NOT reviewed
+## Primary-source register: supplied documents reviewed
 
-Original retrieval of Scientific Reports and WCR was blocked by the managed network (HTTP 403/CONNECT denial). A supported network permission request was granted, but retrieval remained blocked. No alternate credential, proxy bypass or copied dataset was used. Therefore, no coefficients or quantitative sensory claims have been attributed to these references.
+The user supplied the paper, supplement, two CSV transcriptions, WCR Lexicon and SCAE/SCA documents. Their contents have now been reviewed; the earlier network restriction no longer blocks this document review. Publisher-download authenticity remains a separate unperformed check. See [the detailed review](evidence/2020-temperature-review.md) and [file hashes / table audit](evidence/2020-temperature-audit.json).
 
-| Candidate | Link | Potential purpose after review | Current status |
-| --- | --- | --- | --- |
-| Scientific Reports article identifier s41598-020-73341-4 | https://www.nature.com/articles/s41598-020-73341-4 | Examine experimental design and temperature/sensory relationships | Original not retrieved; title, methods, quantitative conclusions and reuse rights not verified in this task |
-| WCR Sensory Lexicon | https://worldcoffeeresearch.org/resources/sensory-lexicon | Review sensory vocabulary and references | Original not retrieved; no descriptors/reference recipes copied |
-| SCA research directory | https://sca.coffee/research | Locate current research, including brewing-control work | Directory candidate, not itself a reviewed paper or evidence for coefficients |
+| Source identified from contents | Appropriate use | Limit |
+| --- | --- | --- |
+| Batali, Ristenpart & Guinard, Scientific Reports 10:16450 (2020), DOI 10.1038/s41598-020-73341-4 | Conditional evidence about temperature/TDS/PE and sensory profiles; Eq.1 for PE | One Honduras lot, batch drip, 87–93°C, matched TDS/PE, serving 65±1°C. Not biochemical validation, hand-pour calibration or a universal taste equation. |
+| Supplement Tables S1/S5 and CSVs | 27 brewing-condition summaries and 31 marginal sensory attributes; all supplied cells checked against PDF | No per-brew raw data, individual ratings or full joint sensory response table. No automatic training/validation from marginal means. |
+| WCR Sensory Lexicon v2.0, second edition 2017 | Descriptive vocabulary and reference-scale methodology | WCR 0–15 is not the app's 1–5 nor the paper's 0–100 scale. No quality ranking or brewing predictor. |
+| SCAE worksheet/chart, date unspecified | Historical illustration: plotted central region TDS 1.20–1.45%, PE 18–22% | Not identical to the historical SCAA chart or modern equipment-test specifications; no universal preference claim. |
+| SCA 310-2021, Home Coffee Brewers: Specifications and Test Methods, ©2022 | Equipment-test context and definitions | User filename says Gold Cup, but contents are an equipment standard: 55 g/kg, target TDS 1.15–1.55%, protocol-specific slurry 90–96°C. Not a kettle setpoint or general taste ranking. |
 
-Before promoting a source: record exact bibliographic metadata, DOI, access/review date, study method, roast/lots, equipment, sample size, TDS/yield ranges, controls, outcomes, uncertainty, exclusions and data/license terms. Distinguish association from controlled effects. Retain a claim-to-source table; do not turn a brewing chart into a universal taste or quality score. If data are not reusable, cite findings without importing the dataset.
+No full source PDFs/lexicon entries have been republished. Article CC BY 4.0 is acknowledged in the review; WCR/SCA reproduction restrictions remain distinct. Reviewed sources have **not** validated the game coefficients. The dataset's marginal means cannot be expanded into synthetic independent trials. Published p-values are cited with conditions, not rederived from summary tables.
 
 ## Version and storage boundaries
 
@@ -32,10 +34,14 @@ Before promoting a source: record exact bibliographic metadata, DOI, access/revi
 - `real-analysis-v1` / `apparent-ey-v1`: arithmetic from user inputs, no flavor prediction or scientific quality score.
 - `c6s.real-brews.v1`: actual observations only; separate from `c6s.cafe.v1` and legacy `c6s.sessions.v1`. Unknown values are null, not zeros or typical recipe defaults.
 
-The record stores units and provenance per numerical field, instrument descriptions when supplied, actual-brew attestation, lot/roast, brewer/grinder identity, real-second pouring milestones, series/repeat/taster codes, self-reported prior-prediction exposure and whether a simulation result was shown during this visit. An unanswered tasting has null sensory timestamps and cannot be labeled tasting evidence. A browser-visit flag cannot prove that someone has never seen a prediction elsewhere.
+The record stores units and provenance per numerical field, instrument descriptions when supplied, optional serving temperature/holding time, actual-brew attestation, lot/roast, brewer/grinder identity, real-second pouring milestones, series/repeat/taster codes, self-reported prior-prediction exposure and whether a simulation result was shown during this visit. An unanswered tasting has null sensory timestamps and cannot be labeled tasting evidence. A browser-visit flag cannot prove that someone has never seen a prediction elsewhere.
 
 No data is uploaded, no analytics or ML training runs, and no empirical records are preloaded. Users can export JSON, including incomplete records, for later review. Corrupt storage is protected and recoverable; a failed write retains the form and reveals no calculation. Drafts are in memory until saved/downloaded; reload discards unsaved entries.
 
 ## Next validation work
 
 Use [the pilot protocol](REAL-BREW-PROTOCOL.md). It establishes a collection workflow, not statistical sufficiency. Keep observed data separate from model development data. Later validation must hold out complete lots, people or series as appropriate, and compare with simple baselines. Measurements and ordinal self-reports need different error models; repeated brews are not independent new tasters. No confidence intervals or probabilities should be presented until their calibration has been evaluated.
+
+## Serving conditions and compatible schema extension
+
+New actual records can include `servingTemperature` (°C) and `holdingSeconds` (real seconds from drawdown to tasting), with the same measured/estimated/unknown provenance. They are optional schema-1 additions. Earlier records lacking them still load/export unchanged; analysis treats absence as missing without inventing values. New records explicitly identify `sensoryScale: app_ordinal_1_5_v1`; older absent scale metadata is retained as absent. No WCR or study-scale conversion is performed.

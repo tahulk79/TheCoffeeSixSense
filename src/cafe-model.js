@@ -54,7 +54,7 @@ export function cafeResult(state,guest=0){
  const flavor=[b.base[0],b.base[1],strength];
  const distance=flavor.reduce((sum,n,i)=>sum+Math.abs(n-cafeGuests[guest].target[i]),0);
  const fit=distance<=1?'great':distance<=3?'close':'different';
- return {version:3,kind:'game_simulation',modelVersion:cafeModelVersion,evidence:{flavor:'fictional_lot_profile',physics:'uncalibrated_game_assumption',sourceReview:'pending_primary_review',confidence:null},bean:state.bean,heat:state.heat,flavor,guest,fit,distance,zone,time:state.time,pourTime:state.pourTime,waitTime:state.time-state.pourTime,overflow:Math.round(state.overflow),beverage:Math.round(state.drained),holds:state.holds,contact:state.contact,events:state.events};
+ return {version:3,kind:'game_simulation',modelVersion:cafeModelVersion,evidence:{flavor:'fictional_lot_profile',physics:'uncalibrated_game_assumption',sourceReview:'reviewed_documents_not_model_validation',sourceRegisterVersion:'supplied-source-review-v2',confidence:null},bean:state.bean,heat:state.heat,flavor,guest,fit,distance,zone,time:state.time,pourTime:state.pourTime,waitTime:state.time-state.pourTime,overflow:Math.round(state.overflow),beverage:Math.round(state.drained),holds:state.holds,contact:state.contact,events:state.events};
 }
 export function cafeAdvice(r){
  if(r.fit==='great')return 'success';
