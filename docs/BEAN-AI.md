@@ -1,41 +1,40 @@
-# Personal beans and packaging extraction (Phase 1 extension)
+# Personal beans: GitHub Pages only
+
+## No VPS or API key
+
+Packaging text is recognized on the player's device using Tesseract.js 6.0.1, its pinned 6.0.0 WebAssembly core and English/Vietnamese fast language data. All runtime assets come from the same GitHub Pages site. Photos, recognized text and journal entries are not sent to an OCR/AI service. Recognition is lazy: only choosing “Read packaging text” loads the reader. The first use downloads several MB and can take longer on a phone; it can be cancelled.
+
+This is local OCR with conservative label parsing, not cloud vision or a language model. It reads printed text but cannot reliably understand every unstructured bag layout. Only explicit labeled lines (e.g. `Roaster:`, `Origin:`, `Tên sản phẩm:`, `Ngày rang:`) populate fields. Unlabeled text remains available for manual review. Missing, conflicting or ambiguous fields stay blank. Roast dates require unambiguous ISO dates. No origin, roast level or quality is inferred from a bean photograph.
 
 ## Player flow
 
-“My beans” supports up to four packaging photos and two bean photos per bag, using camera capture or uploads (JPEG/PNG/WebP, up to 10 MB per input). Images are resized to at most 1280 pixels and re-encoded to JPEG in-browser, without carrying the input EXIF metadata. Review and remove images before scanning. A separate bean photo is a visual journal only; it is never sent for label extraction or used to infer roast, origin or quality.
+Add up to four packaging photos and two bean photos (JPEG/PNG/WebP, 10 MB maximum input). Images are resized to at most 1280 pixels and re-encoded to JPEG without input EXIF metadata. Preview/remove photos before reading. Bean photos are visual journal records and are never passed to the reader.
 
-AI proposes product name, roaster, country/region, variety, process, roast level/date, printed tasting notes, and an explicitly printed brew guide. Missing fields stay empty; uncertain readings are marked and evidence text is shown. AI does not overwrite nonempty manual fields. A player must review/confirm before saving. Printed tasting notes are separate from their own taste impressions.
+Review recognized text, evidence and uncertainty hints; fill unknown fields manually. Existing manual entries are never overwritten. Confirm details before saving. Printed tasting notes remain distinct from the player's own impressions. Profiles, images and recognized text are stored in IndexedDB and can be exported together. The main journal stores a metadata snapshot for each personal-bean session, so renaming a bag does not rename old entries.
 
-Profiles and compressed images use IndexedDB rather than the small localStorage journal. Both remain local to the browser. Export profiles with photos separately from journal JSON. Image import from those exports and cross-device syncing are not part of this extension. Personal-bean sessions keep a metadata snapshot, so renaming a bag does not rename old sessions. They use no invented target score: save a baseline, change one setting, compare impressions. Existing starter beans retain their simulation mechanics.
+Personal beans have no invented target score. Use a starting recipe, save a baseline and change one setting to compare impressions. Existing starter beans retain their game simulation. Manual entry remains available if OCR cannot read a photo, assets fail to load or the browser lacks WebAssembly/Worker support. Failed reading or saving retains form inputs and photos. Unsaved forms do not survive page reloads; save/export before clearing data or moving devices. Import/sync is outside this extension.
 
-## Current activation boundary
-
-`public/bean-ai.json` and generated `docs/bean-ai.json` ship with an empty endpoint. The interface explicitly says AI is not connected; photo upload, manual entry and personal brewing still work. No API key belongs in these public files. Only activate the endpoint after a real extraction through the VPS succeeds. Mocked tests verify integration contracts, not provider credentials or production readiness.
-
-## VPS service (administrator)
-
-The service uses Node.js 22+ and its built-in HTTP/fetch APIs; it has no npm runtime dependencies. After reviewing the change and checking the VPS operating system, install supported Node.js at `/usr/bin/node` if needed. In a reviewed checkout:
+## Reproducible assets and Pages deployment
 
 ```sh
-sudo bash deploy/install-bean-ai.sh
-sudoedit /etc/coffee-bean-ai.env
+npm ci --no-audit --no-fund
+npm run build:pages
+npm test
+npm run build
 ```
 
-Set `COFFEE_AI_KEY` securely in that root-owned mode-600 file. Never send it in chat, commit it, embed it in Pages, or print the file. The service uses the OpenAI Responses API with `gpt-4.1-mini` by default and `store:false`; provider handling remains subject to the provider's policies. `COFFEE_ALLOWED_ORIGINS` must list exact trusted page origins (for Pages: `https://tahulk79.github.io`, no repository path).
+`prepare:ocr` copies pinned runtime bundles and licenses from locked npm dependencies into ignored `public/ocr/engine/`. It verifies the checked-in language files against their SHA-256 manifest. Their upstream Git blob IDs and commit are recorded in `public/ocr/lang/SOURCES.json`. The standalone generator copies those assets into ignored `docs/ocr/`. Vite copies them to `dist/ocr/`.
 
-The install script preserves an existing environment file and does not alter Nginx or start a paid service. It creates an unprivileged `coffee-ai` account and a systemd unit; run `bash -n deploy/install-bean-ai.sh` before use. Then:
-
-```sh
-sudo systemctl enable --now coffee-bean-ai
-curl --fail http://127.0.0.1:8787/health
-```
-
-Health reports whether a key is configured, not whether provider authorization works. Include `deploy/nginx/bean-ai-location.conf` inside the existing HTTPS vhost for `cf.ta79.com`, preserving other sites and certificate settings. Run `sudo nginx -t` before reload. Do not expose port 8787 publicly. This service must be installed by an administrator, not by granting sudo to `coffee-deploy`.
-
-The service allows four bounded inline JPEG images, enforces provider timeout and strict structured output, rejects remote-image URLs, and returns generic provider errors without logging photos/keys. Origin restrictions are CORS policy, not authentication. Persisted limits default to 25 scans globally/day and five/client/day, including failed provider attempts; quota storage failure fails closed. Set stricter limits for a small pilot. These quotas bound usage but do not prevent unauthorized clients from exhausting availability; add authenticated user access before broader public use. TLS, Nginx access control, monitoring and the API account's spending settings are administrator responsibilities.
-
-Verify one approved non-sensitive packaging image through the API with the expected Origin, review actual extracted values, and check absent fields remain null/blank. Do not paste a photo data URL or credentials into shared logs. Only after that succeeds set the public JSON endpoint to `https://cf.ta79.com/api/bean-scan`, regenerate the standalone artifact and deploy Pages. Do not treat local mocks or `/health` as a successful production AI scan.
+The Pages workflow installs frozen dependencies and builds the standalone site before uploading `docs/`. Keep Pages Source set to GitHub Actions. No API endpoint config, paid service, provider credential or VPS workflow is used for this feature. Apache-2.0 licenses and bundled dependency notices ship with the reader.
 
 ## Validation
 
-`npm test` exercises normalization, absent/uncertain fields, manual-field preservation, dates, safe profile data, custom-bean journal compatibility, provider request/schema, CORS, quota failures and sanitized errors. Browser checks cover both Vite and standalone, real IndexedDB persistence, photos, editing, snapshot history, exporting and personal brewing. AI success/error cases are mocked until the VPS and a usable provider credential are configured.
+`npm test` checks explicit Vietnamese/English labels, uncertainty, conflicting fields, no guessing from unlabeled text, preserving manual entries, safe profile data, snapshots and language checksums.
+
+With the dev server on port 5173, run:
+
+```sh
+PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-beans.mjs
+```
+
+This exercises the real browser OCR engine with a rendered label (no mocked reader or AI API), field extraction, blank missing fields, review, IndexedDB save/reload, personal brewing and export on Vite and the standalone page. It records browser-context requests to reject external HTTP calls. Clear printed test labels validate engine integration; real photos still vary with lighting, focus, fonts and layout and always require user review.

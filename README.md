@@ -35,13 +35,13 @@ A web-first specialty coffee learning game where players practice brewing, evalu
 
 The coffee journey includes four quests: save all three starter beans, record three discoveries, change exactly one setting between consecutive brews of the same bean and record the result, then save three brews of one bean with a simulated balance of at least 90. Quests unlock in order; existing saved history counts. Simulation goals are game mechanics, not objective taste measurements.
 
-After changing frontend modules or styles, regenerate the GitHub Pages artifact with `node scripts/build-standalone.mjs --write`. Run `npm test` and `npm run build`; tests reject a stale `docs/index.html`. Pages publishes this self-contained artifact through the manual Pages workflow.
+After changing frontend modules or styles, regenerate the GitHub Pages artifact and its local OCR assets with `npm run build:pages`. Run `npm test` and `npm run build`; tests reject a stale `docs/index.html`. Pages publishes this self-contained artifact through the manual Pages workflow.
 
 ## Personal beans (Phase 1 extension)
 
-Players can photograph packaging and beans, review label details, fill missing fields and brew with their own coffee. Personal beans have no assumed target score. Profiles/photos stay in IndexedDB and can be exported. The VPS label-extraction service and its activation requirements are documented in [BEAN-AI.md](docs/BEAN-AI.md). AI is explicitly unavailable until the service and its server-side credential are configured and verified; manual entry works independently.
+Players can photograph packaging and beans, review label details, fill missing fields and brew with their own coffee. Personal beans have no assumed target score. Profiles/photos stay in IndexedDB and can be exported. Packaging text is read locally on the player’s device using a bundled English/Vietnamese OCR engine; explicit label fields become reviewable suggestions. No VPS, API key or external AI service is needed. See [BEAN-AI.md](docs/BEAN-AI.md) for limits and reproducible builds.
 
 ## Status
 The repository contains a playable Vite frontend with brew simulation, personal tasting reviews, local session history, comparison, discoveries and JSON export. Phase 1 now provides a complete simulated pour-over loop in Vietnamese and English: recipe selection, three pour actions, optional tasting or hypothesis notes, save confirmation, and replay. History, comparison, four quests, XP and badges are available. The standalone Pages application is generated into `docs/index.html`. See [Phase 1 acceptance and validation](docs/PHASE1.md).
 
-Production deployment preparation targets **https://cf.ta79.com** on Ubuntu/Nginx. See [the deployment runbook](docs/DEPLOYMENT.md) for local verification, DNS, HTTPS bootstrap, restricted SSH deployment, approval gates and rollback. Production has not been provisioned or deployed by this change.
+The active game is deployed on **GitHub Pages**. Legacy optional VPS preparation targets **https://cf.ta79.com** on Ubuntu/Nginx and is not required for the game. See [the deployment runbook](docs/DEPLOYMENT.md) for local verification, DNS, HTTPS bootstrap, restricted SSH deployment, approval gates and rollback. Production has not been provisioned or deployed by this change.
