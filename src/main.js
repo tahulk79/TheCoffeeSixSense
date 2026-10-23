@@ -36,7 +36,7 @@ function render() {
     const result = document.querySelector('#result');
     result.innerHTML = `<div class="result"><h3>Simulated balance: ${simulatedScore}/100</h3><p>This is a simplified game model, not a prediction of what you will actually taste.</p><h3>Personal tasting review</h3><p>Rate only what you actually tasted. For a virtual brew, leave these as a hypothetical exercise.</p><div class="fields">${ratingFields()}</div><label>Tasting notes<textarea id="notes" maxlength="1000" rows="3" placeholder="What did you notice?"></textarea></label><label>My discovery / next experiment<textarea id="discovery" maxlength="1000" rows="2" placeholder="What might improve the next cup?"></textarea></label><button id="save" type="button">Save to Coffee Memory</button></div>`;
     document.querySelector('#save').onclick = () => {
-      sessions.push({id:crypto.randomUUID(),date:new Date().toISOString(),bean:bean.id,parameters,simulatedScore,notes:document.querySelector('#notes').value,discovery:document.querySelector('#discovery').value,taste:Object.fromEntries(dimensions.map(k=>[k,Number(document.querySelector(`[name=taste_${k}]`).value)]))});
+      sessions.push({id:(globalThis.crypto?.randomUUID?.() || `brew-${Date.now()}-${Math.random().toString(36).slice(2)}`),date:new Date().toISOString(),bean:bean.id,parameters,simulatedScore,notes:document.querySelector('#notes').value,discovery:document.querySelector('#discovery').value,taste:Object.fromEntries(dimensions.map(k=>[k,Number(document.querySelector(`[name=taste_${k}]`).value)]))});
       try {localStorage.setItem(key,JSON.stringify(sessions));render();} catch {alert('Local storage is unavailable. Export your data after enabling storage.');}
     };
   });
