@@ -38,3 +38,7 @@ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-browser.mjs
 ```
 
 These checks exercise both Vite and the standalone artifact at 360, 768 and 1440 pixels: recipe validation, all three pours, bilingual switching mid-brew and mid-review, blank optional ratings, save/replay, comparison, JSON downloads, failed-write recovery, cancellation, legacy journals, malformed-data preservation, page errors and horizontal overflow.
+
+## Personal beans extension
+
+Phase 1 includes personal bag profiles with packaging/bean photos, manual metadata review and brewing without an invented reference score. AI packaging extraction is a VPS-backed capability with separate credential and activation requirements; see [BEAN-AI.md](BEAN-AI.md). An empty scan endpoint intentionally leaves manual entry available and AI marked disconnected.
