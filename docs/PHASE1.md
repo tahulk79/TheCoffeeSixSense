@@ -1,6 +1,6 @@
 # Phase 1: playable brewing and tasting loop
 
-## Scope
+## Optional studio and earlier decision lessons
 
 Phase 1 is a local-first learning game. It runs without a backend, login, real brewing equipment, remote analytics or credentials. It does not predict extraction or assess objective cup quality. Cloud sync and wider release/analytics work are outside this phase.
 
@@ -59,10 +59,16 @@ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-pour-game.mjs
 
 It exercises quick start, deliberate mistakes and feedback, same-scenario retry, one-change goals, score explanation, language switching, rapid double-click protection, keyboard choices and persisted reports at 360/768/1440px on Vite and Pages. Existing journal/OCR smoke tests use the same visible-choice helper.
 
-## Coffee counter revision
+## Coffee counter revision: timing and causal feedback
 
-The primary entry point is now a real-time counter game (`cafe-model.js`, `cafe-ui.js`). Three guests request distinct flavor profiles. Players choose one of three fictional bean profiles and 88/92/96°C, hold to pour 180 ml, release to drain, and avoid overflowing a 64 ml filter. A one-tap toggle is available for hold-free input. Space/Enter, pointer cancellation, window blur and document visibility are handled; hidden tabs pause the simulation. The timestep is bounded and the model conserves poured water between filter, cup and overflow.
+The default counter game uses a fictional model, not a calibrated coffee predictor. Each starter lot has an explicit roast and fictional flavor profile; origins alone do not determine taste. Guests have reachable targets and their acceptance and retry advice share one verdict. A happy guest is not told that the cup requires correction; overflow can separately be described as wasted beverage.
 
-Results show acidity, bitterness and body, a guest response, contact time and spilled water. Bean base profiles, temperature, wet contact and overflow determine these fictional game values; they are not real taste predictions. Retry keeps the guest and recipe, permits a change, and compares both cups immediately. Saving a legacy journal is never required. Guest rotation has no XP gate. Counter results (latest 30) and optional discovery notes use a separate `c6s.cafe.v1` key; legacy journals, bean photos and OCR remain untouched in an optional studio. Reload retains saved counter results, not an unfinished cup.
+The visible clock runs at an explicitly labeled 6× simulation speed. It starts with first water, separates active pouring from waiting/drawdown, and stops with drawdown. Hidden tabs pause it. Sticky mobile clocks remain visible while operating the controls. Timelines record the first water, each pour/pause and the finish. Comparison includes total/pour/wait/wet-contact time, pulse count, beverage yield and overflow, as well as coarse flavor bands.
 
-`npm test` includes water conservation, overflow/body and temperature/flavor tests. `PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-cafe.mjs` exercises the generated Pages artifact on mobile and desktop, including two cups, comparison, language changes, optional note saving, reload and studio access. This validates behavior, not player retention or enjoyment; those require observing new players.
+A fixed 12 g dose and 180 ml input are disclosed. The toy model retains 24 ml in the grounds, conserves water across retention/filter/cup/overflow, and conserves extracted material across filter/cup/spillage. Temperature, lot parameters and wet contact affect a saturating dissolution calculation; waiting with a dry filter cannot create more extraction. Strength derives from material collected per beverage volume, not a direct penalty for overflow. Relative acidity/bitterness bands use the fictional lot and extraction zone, not a claim that hotter water always tastes less acidic. These calculations have not been calibrated to physical brews or taste panels. Clock speed is a game pacing choice, not a real recipe recommendation.
+
+A drawn kettle, animated inlet, continued drawdown stream and overflow stream make water movement visible. Reduced-motion preferences stop stream animation while keeping state visible. Pointer, keyboard, one-tap toggle, blur and hidden-tab behavior remain supported. A small final-volume tolerance avoids a stuck 179 ml display.
+
+Counter results carry model version 2 in the existing separate `c6s.cafe.v1` key (latest 30); earlier counter results are retained without recalculating them. Unfinished cups do not survive reload. Legacy journals/photos/OCR remain in the optional studio.
+
+Validation: `npm test` covers clock boundaries, pulse events, water/material conservation, temperature/contact effects, dry waits, consistent advice, final-volume completion and reachable guest targets. `PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-cafe.mjs` checks the generated Pages artifact on mobile and desktop, including visible clocks, pouring/drawdown, replay comparison/timeline, bilingual notes, reload and studio access. These checks validate behavior rather than real-world sensory accuracy or player retention.
