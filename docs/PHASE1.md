@@ -80,3 +80,7 @@ The counter now records `counter-assumptions-v3`: unsupported extraction-to-acid
 A separate actual-brew form is accessible directly from the top of the page. It records real seconds and grams, per-field measured/estimated/unknown provenance, actual-brew attestation, optional tools/TDS/milestones and repeat/taster codes. Tasting is entered before opening calculations. Apparent extraction yield is only calculated when dose, beverage and TDS are present; estimated inputs remain estimates. No acidity/bitterness prediction or quality score is produced. Empty sensory responses stay unassessed. Local JSON export is separate from simulation and legacy journals, with recoverable storage failures.
 
 See [SCIENCE.md](SCIENCE.md) for evidence status, the blocked original-source review and version/schema boundaries, and [REAL-BREW-PROTOCOL.md](REAL-BREW-PROTOCOL.md) for a pilot workflow. No actual experimental dataset has yet been collected or used to calibrate the model.
+
+## Supplied-source review completed
+
+The scientific paper/supplement, S1/S5 CSVs and WCR/SCAE/SCA documents supplied on 2026-10-23 have been reviewed. [Detailed findings](evidence/2020-temperature-review.md) replace the earlier pending-source status; this does not calibrate the game or create an ML predictor. Actual-brew forms now support optional serving temperature and holding time, and explicitly identify their casual 1–5 sensory scale. Existing records without those fields remain readable and exportable unchanged.

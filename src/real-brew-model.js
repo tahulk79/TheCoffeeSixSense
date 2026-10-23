@@ -1,8 +1,8 @@
 export const realBrewSchema = 1;
 export const realBrewProtocol = 'pourover-observation-v1';
-export const realMeasureFields = ['dose','water','beverage','temperature','brewSeconds','pourSeconds','tds'];
+export const realMeasureFields = ['dose','water','beverage','temperature','brewSeconds','pourSeconds','servingTemperature','holdingSeconds','tds'];
 export const realSensoryFields = ['acidity','bitterness','sweetness','astringency','strength','body','liking'];
-export const realMeasureLimits = {dose:[.1,100],water:[1,2000],beverage:[1,2000],temperature:[1,100],brewSeconds:[1,3600],pourSeconds:[0,3600],tds:[.01,20]};
+export const realMeasureLimits = {dose:[.1,100],water:[1,2000],beverage:[1,2000],temperature:[1,100],brewSeconds:[1,3600],pourSeconds:[0,3600],servingTemperature:[1,100],holdingSeconds:[0,86400],tds:[.01,20]};
 export function realMeasurements(input){
  if(input.actualBrewConfirmed!==true)throw Error('realconfirmation');
  const measurements={};
@@ -12,7 +12,7 @@ export function realMeasurements(input){
   const source=item.source||'unknown';
   if(!['measured','estimated','unknown','missing'].includes(source)||value!==null&&source==='missing')throw Error('measurement');
   if(value!==null&&(!Number.isFinite(value)||value<realMeasureLimits[field][0]||value>realMeasureLimits[field][1]))throw Error('measurement');
-  measurements[field]={value,source:value===null?'missing':source,unit:field==='tds'?'%':field==='temperature'?'C':field.endsWith('Seconds')?'s':'g'};
+  measurements[field]={value,source:value===null?'missing':source,unit:field==='tds'?'%':field.toLowerCase().includes('temperature')?'C':field.endsWith('Seconds')?'s':'g'};
  }
  const text=k=>String(input[k]||'').trim().slice(0,160);
  const lot=text('lot'),brewer=text('brewer'),grinder=text('grinder'),grindSetting=text('grindSetting');
@@ -38,10 +38,10 @@ export function realObservation(input,metadata={}){
  const observation=realMeasurements(input),sensory={};
  for(const f of realSensoryFields){const raw=input.sensory?.[f];const value=raw===''||raw===undefined||raw===null?null:Number(raw);if(value!==null&&(!Number.isInteger(value)||value<1||value>5))throw Error('sensory');sensory[f]={value,source:value===null?'missing':'self_reported'};}
  const now=new Date().toISOString(),assessed=realSensoryFields.some(f=>sensory[f].value!==null);
- return {schemaVersion:realBrewSchema,kind:'real_brew_observation',method:'pour_over',predictionModelVersion:null,formulaVersion:'apparent-ey-v1',protocol:realBrewProtocol,id:metadata.id||globalThis.crypto?.randomUUID?.()||`real-${Date.now()}-${Math.random().toString(36).slice(2)}`,startedAt:metadata.startedAt||new Date().toISOString(),recordedAt:now,sensoryRecordedAt:assessed?now:null,sensoryStatus:assessed?'recorded':'not_assessed',sensoryRecordedBeforeAnalysis:assessed,analysisRequestedAt:now,...observation,sensory,notes:String(input.notes||'').slice(0,2000),priorPredictionExposure:['yes','no','unknown'].includes(input.priorPredictionExposure)?input.priorPredictionExposure:'unknown',simulationSeenThisVisit:metadata.simulationSeenThisVisit===true,analysisVersion:'real-analysis-v1',prediction:null,blindTastingVerified:false};
+ return {schemaVersion:realBrewSchema,kind:'real_brew_observation',sensoryScale:'app_ordinal_1_5_v1',method:'pour_over',predictionModelVersion:null,formulaVersion:'apparent-ey-v1',protocol:realBrewProtocol,id:metadata.id||globalThis.crypto?.randomUUID?.()||`real-${Date.now()}-${Math.random().toString(36).slice(2)}`,startedAt:metadata.startedAt||new Date().toISOString(),recordedAt:now,sensoryRecordedAt:assessed?now:null,sensoryStatus:assessed?'recorded':'not_assessed',sensoryRecordedBeforeAnalysis:assessed,analysisRequestedAt:now,...observation,sensory,notes:String(input.notes||'').slice(0,2000),priorPredictionExposure:['yes','no','unknown'].includes(input.priorPredictionExposure)?input.priorPredictionExposure:'unknown',simulationSeenThisVisit:metadata.simulationSeenThisVisit===true,analysisVersion:'real-analysis-v1',prediction:null,blindTastingVerified:false};
 }
 export function realAnalysis(record){
- const m=record.measurements;
+ const m={...Object.fromEntries(realMeasureFields.map(f=>[f,{value:null,source:'missing'}])),...record.measurements};
  const fields=['dose','beverage','tds'];
  const available=fields.every(f=>m[f].value!==null&&m[f].value>0);
  const ey=available?m.beverage.value*m.tds.value/m.dose.value:null;
@@ -53,8 +53,9 @@ export function loadRealObservations(raw){
   const records=JSON.parse(raw);
   if(!Array.isArray(records)||!records.every(r=>{
    if(!r||r.schemaVersion!==1||r.kind!=='real_brew_observation'||r.protocol!==realBrewProtocol||r.method!=='pour_over'||r.predictionModelVersion!==null||r.formulaVersion!=='apparent-ey-v1'||typeof r.id!=='string'||!Number.isFinite(Date.parse(r.recordedAt))||!(r.sensoryStatus==='recorded'&&Number.isFinite(Date.parse(r.sensoryRecordedAt))&&r.sensoryRecordedBeforeAnalysis===true||r.sensoryStatus==='not_assessed'&&r.sensoryRecordedAt===null&&r.sensoryRecordedBeforeAnalysis===false)||!Number.isFinite(Date.parse(r.startedAt))||r.prediction!==null||r.blindTastingVerified!==false)return false;
+   if(r.sensoryScale!==undefined&&r.sensoryScale!=='app_ordinal_1_5_v1')return false;
    const normalized=realMeasurements(r);
-   if(!realMeasureFields.every(f=>r.measurements?.[f]?.value===normalized.measurements[f].value&&r.measurements[f].unit===normalized.measurements[f].unit&&r.measurements[f].source===normalized.measurements[f].source))return false;
+   if(!realMeasureFields.every(f=>((f==='servingTemperature'||f==='holdingSeconds')&&!Object.hasOwn(r.measurements||{},f))||(r.measurements?.[f]?.value===normalized.measurements[f].value&&r.measurements[f].unit===normalized.measurements[f].unit&&r.measurements[f].source===normalized.measurements[f].source)))return false;
    return realSensoryFields.every(f=>r.sensory?.[f]&&(r.sensory[f].value===null?r.sensory[f].source==='missing':Number.isInteger(r.sensory[f].value)&&r.sensory[f].value>=1&&r.sensory[f].value<=5&&r.sensory[f].source==='self_reported'));
   }))throw Error();
   return {records,writable:true,raw};
