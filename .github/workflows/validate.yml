@@ -5,31 +5,18 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Syntax check
-        run: node --check src/main.js
-      - name: Validate standalone HTML
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          import assert from 'node:assert/strict';
-          const html=fs.readFileSync('docs/index.html','utf8');
-          assert.match(html, /<style>/);
-          assert.match(html, /<script type="module">/);
-          for (const feature of ['Coffee Desk','Coffee Memory','compare-a','ratingFields','discovery']) assert.ok(html.includes(feature),feature);
-          const js=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
-          assert.ok(js);
-          fs.writeFileSync('/tmp/c6s-standalone.mjs',js);
-          NODE
-          node --check /tmp/c6s-standalone.mjs
-      - name: Install and build Vite application
-        run: |
-          npm install --no-audit --no-fund
-          npm run build
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+      - run: bash -n deploy/release.sh

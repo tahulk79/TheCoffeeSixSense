@@ -32,4 +32,6 @@ A web-first specialty coffee learning game where players practice brewing, evalu
 - No game-specific domain, social/advertising accounts or campaigns before MVP.
 
 ## Status
-Product specification drafted. Existing prototype code is **not yet imported or verified**. No production build or deployment is claimed.
+The repository contains a playable Vite frontend with brew simulation, personal tasting reviews, local session history, comparison, discoveries and JSON export. Vietnamese localization and progression remain planned. The original standalone preview is in `docs/index.html`.
+
+Production deployment preparation targets **https://cf.ta79.com** on Ubuntu/Nginx. See [the deployment runbook](docs/DEPLOYMENT.md) for local verification, DNS, HTTPS bootstrap, restricted SSH deployment, approval gates and rollback. Production has not been provisioned or deployed by this change.
