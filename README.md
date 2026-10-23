@@ -38,6 +38,6 @@ The coffee journey includes four quests: save all three starter beans, record th
 After changing frontend modules or styles, regenerate the GitHub Pages artifact with `node scripts/build-standalone.mjs --write`. Run `npm test` and `npm run build`; tests reject a stale `docs/index.html`. Pages publishes this self-contained artifact through the manual Pages workflow.
 
 ## Status
-The repository contains a playable Vite frontend with brew simulation, personal tasting reviews, local session history, comparison, discoveries and JSON export. Vietnamese localization and progression remain planned. The original standalone preview is in `docs/index.html`.
+The repository contains a playable Vite frontend with brew simulation, personal tasting reviews, local session history, comparison, discoveries and JSON export. Phase 1 now provides a complete simulated pour-over loop in Vietnamese and English: recipe selection, three pour actions, optional tasting or hypothesis notes, save confirmation, and replay. History, comparison, four quests, XP and badges are available. The standalone Pages application is generated into `docs/index.html`. See [Phase 1 acceptance and validation](docs/PHASE1.md).
 
 Production deployment preparation targets **https://cf.ta79.com** on Ubuntu/Nginx. See [the deployment runbook](docs/DEPLOYMENT.md) for local verification, DNS, HTTPS bootstrap, restricted SSH deployment, approval gates and rollback. Production has not been provisioned or deployed by this change.
