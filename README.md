@@ -31,6 +31,12 @@ A web-first specialty coffee learning game where players practice brewing, evalu
 - Initial marketing test budget USD 3,000, deferred until MVP is ready.
 - No game-specific domain, social/advertising accounts or campaigns before MVP.
 
+## Brew quests
+
+The coffee journey includes four quests: save all three starter beans, record three discoveries, change exactly one setting between consecutive brews of the same bean and record the result, then save three brews of one bean with a simulated balance of at least 90. Quests unlock in order; existing saved history counts. Simulation goals are game mechanics, not objective taste measurements.
+
+After changing frontend modules or styles, regenerate the GitHub Pages artifact with `node scripts/build-standalone.mjs --write`. Run `npm test` and `npm run build`; tests reject a stale `docs/index.html`. Pages publishes this self-contained artifact through the manual Pages workflow.
+
 ## Status
 The repository contains a playable Vite frontend with brew simulation, personal tasting reviews, local session history, comparison, discoveries and JSON export. Vietnamese localization and progression remain planned. The original standalone preview is in `docs/index.html`.
 

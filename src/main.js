@@ -1,3 +1,4 @@
+import { missionProgress } from './missions.js';
 import { progression, nextExperiment } from './progression.js';
 import './style.css';
 
@@ -23,8 +24,11 @@ const label = b => beans.find(x => x.id === b)?.name || b;
 const score = (bean, p) => Math.max(0, Math.round(100 - Object.keys(bean.target).reduce((sum, k) => sum + Math.abs(Number(p[k]) - bean.target[k]) * ({dose:3,water:0.16,temp:4,grind:3}[k]), 0)));
 function render() {
   const journey = progression(sessions);
-  app.innerHTML = `<main><header><span class="eyebrow">THE COFFEE SIX SENSE · MVP 0.2</span><h1>Brew. Taste. Discover.</h1><p>Learn pour-over through experiments. Your sixth sense is the meaning you find in the cup.</p></header>
+  const missions = missionProgress(sessions);
+  const activeMission = missions.find(m => !m.complete && !m.locked);
+  app.innerHTML = `<main><header><span class="eyebrow">THE COFFEE SIX SENSE · MVP 0.3</span><h1>Brew. Taste. Discover.</h1><p>Learn pour-over through experiments. Your sixth sense is the meaning you find in the cup.</p></header>
   <section class="panel journey" aria-labelledby="journey-title"><h2 id="journey-title">Your coffee journey</h2><p><strong>Level ${journey.level}</strong> · ${journey.xp} XP · ${journey.remaining} XP to the next level</p><progress max="50" value="${journey.progress}" aria-label="Progress to next level"></progress><p>Earn 10 XP for a saved brew and 5 more for a discovery. Progress rewards practice, not taste scores.</p><ul class="badges">${journey.badges.map(b => `<li class="${b.earned ? 'earned' : ''}"><strong>${b.earned ? '✓' : '○'} ${b.name}</strong><small>${b.hint}</small></li>`).join('')}</ul></section>
+  <section class="panel missions" aria-labelledby="missions-title"><div class="section-head"><h2 id="missions-title">Brew quests</h2><span>${missions.filter(m => m.complete).length} / ${missions.length} complete</span></div><p>Follow the quests in order. Your saved Coffee Memory counts toward every goal.</p><ol class="quest-list">${missions.map(m => `<li class="quest ${m.complete ? 'complete' : m.locked ? 'locked' : 'active'}"><div><strong>${m.complete ? '✓ Complete' : m.locked ? 'Locked' : 'Your next quest'} · ${m.title}</strong><p>${m.description}</p><span>${m.count} / ${m.total}</span></div>${!m.complete && !m.locked ? `<button type="button" id="start-quest">${m.id === 'experiment' && sessions.length ? 'Use my last recipe' : 'Start this quest'}</button>` : ''}</li>`).join('')}</ol><p id="quest-message" role="status">${activeMission ? 'Choose your next quest below, then save your brew to make progress.' : 'All quests complete! Keep exploring your own recipes and discoveries.'}</p></section>
   <section class="panel"><h2>01 / Coffee Desk</h2><form id="brew"><label>Bean<select name="bean">${beans.map(b => `<option value="${b.id}">${b.name} — ${b.notes}</option>`).join('')}</select></label><div class="fields">
   <label>Dose (g)<input name="dose" type="number" min="5" max="50" value="20" required></label>
   <label>Water (ml)<input name="water" type="number" min="50" max="800" value="300" required></label>
@@ -39,19 +43,34 @@ function render() {
     const result = document.querySelector('#result');
     result.innerHTML = `<div class="result"><h3>Simulated balance: ${simulatedScore}/100</h3><p>This is a simplified game model, not a prediction of what you will actually taste.</p><aside class="experiment"><h3>Your next experiment</h3><p>${nextExperiment(bean, parameters)}</p></aside><h3>Personal tasting review</h3><p>Rate only what you actually tasted. For a virtual brew, leave these as a hypothetical exercise.</p><div class="fields">${ratingFields()}</div><label>Tasting notes<textarea id="notes" maxlength="1000" rows="3" placeholder="What did you notice?"></textarea></label><label>My discovery / next experiment<textarea id="discovery" maxlength="1000" rows="2" placeholder="What might improve the next cup?"></textarea></label><button id="save" type="button">Save to Coffee Memory</button></div>`;
     document.querySelector('#save').onclick = () => {
-      sessions.push({id:(globalThis.crypto?.randomUUID?.() || `brew-${Date.now()}-${Math.random().toString(36).slice(2)}`),date:new Date().toISOString(),bean:bean.id,parameters,simulatedScore,notes:document.querySelector('#notes').value,discovery:document.querySelector('#discovery').value,taste:Object.fromEntries(dimensions.map(k=>[k,Number(document.querySelector(`[name=taste_${k}]`).value)]))});
-      try {localStorage.setItem(key,JSON.stringify(sessions));render();} catch {alert('Local storage is unavailable. Export your data after enabling storage.');}
+      const nextSessions = [...sessions, {id:(globalThis.crypto?.randomUUID?.() || `brew-${Date.now()}-${Math.random().toString(36).slice(2)}`),date:new Date().toISOString(),bean:bean.id,parameters,simulatedScore,notes:document.querySelector('#notes').value,discovery:document.querySelector('#discovery').value,taste:Object.fromEntries(dimensions.map(k=>[k,Number(document.querySelector(`[name=taste_${k}]`).value)]))}];
+      try {localStorage.setItem(key,JSON.stringify(nextSessions));sessions = nextSessions;render();} catch {alert('Local storage is unavailable. Export your data after enabling storage.');}
     };
   });
-  document.querySelectorAll('.retry').forEach(button => button.addEventListener('click', () => {
-    const session = sessions[Number(button.dataset.session)];
+  const restoreRecipe = session => {
     const form = document.querySelector('#brew');
-    form.elements.bean.value = session.bean;
-    for (const field of ['dose', 'water', 'temp', 'grind']) form.elements[field].value = session.parameters?.[field] ?? form.elements[field].defaultValue;
-    document.querySelector('#result').innerHTML = '<p>Recipe restored. Change one setting, then simulate and compare your next brew.</p>';
+    if (session) {
+      form.elements.bean.value = session.bean;
+      for (const field of ['dose', 'water', 'temp', 'grind']) form.elements[field].value = session.parameters?.[field] ?? form.elements[field].defaultValue;
+    }
+    document.querySelector('#result').textContent = 'Recipe ready. Change one setting, simulate, then record your discovery and save.';
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     form.elements.bean.focus({ preventScroll: true });
-  }));
+  };
+  document.querySelectorAll('.retry').forEach(button => button.addEventListener('click', () => restoreRecipe(sessions[Number(button.dataset.session)])));
+  document.querySelector('#start-quest')?.addEventListener('click', () => {
+    const last = sessions.at(-1);
+    if (activeMission.id === 'experiment' && last) restoreRecipe(last);
+    else {
+      restoreRecipe(null);
+      if (activeMission.bean) document.querySelector('#brew').elements.bean.value = activeMission.bean;
+    }
+    const message = activeMission.id === 'explore' ? 'Try this unvisited bean. Simulate and save to advance your quest.'
+      : activeMission.id === 'discover' ? 'After simulating, write a discovery before saving.'
+      : activeMission.id === 'experiment' ? 'Your last recipe is ready. Change exactly one setting and save a discovery about the result.'
+      : 'Choose a bean and use the game hints to reach 90+ simulated balance. Save three brews of that bean.';
+    document.querySelector('#result').textContent = message;
+  });
   const ca=document.querySelector('#compare-a'), cb=document.querySelector('#compare-b');
   if(ca && cb){
     const update=()=>{document.querySelector('#comparison').innerHTML = ca.value===cb.value ? '<p>Choose two different sessions.</p>' : `<div class="table-wrap"><table><thead><tr><th>Measure</th><th>Session A</th><th>Session B</th></tr></thead><tbody>${compare(sessions[Number(ca.value)],sessions[Number(cb.value)])}</tbody></table></div>`;};
