@@ -1,3 +1,4 @@
+import { finishPour } from './browser-helpers.mjs';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');const baseURL=process.env.BASE_URL||'http://127.0.0.1:5173';import assert from 'node:assert/strict';
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
 for(const path of (process.env.TEST_PATHS||'/,/docs/index.html').split(',')){
@@ -9,7 +10,7 @@ for(const path of (process.env.TEST_PATHS||'/,/docs/index.html').split(',')){
  console.log(path, await page.locator('#bean-status').innerText(), 'name:',await page.locator('#bean-profile [name=name]').inputValue());
  assert.equal(await page.locator('#bean-profile [name=name]').inputValue(),'Test Coffee');assert.equal(await page.locator('#bean-profile [name=origin]').inputValue(),'Vietnam');assert.equal(await page.locator('#bean-profile [name=roastDate]').inputValue(),'2026-10-01');assert.equal(await page.locator('#bean-profile [name=variety]').inputValue(),'');assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
  assert.equal(await page.locator('#bean-profile [name=variety]').inputValue(),'');await page.locator('#bean-profile [name=reviewed]').check();await page.locator('#bean-profile button[type=submit]').click();await page.locator('.bean-card').waitFor();await page.reload();await page.locator('.bean-card').waitFor();
- await page.locator('.brew-personal').click();await page.locator('#brew button[type=submit]').click();for(let i=0;i<3;i++)await page.locator('#pour').click();assert.match(await page.locator('.balance').innerText(),/Không chấm điểm hạt riêng/);await page.locator('#taste button[type=submit]').click();await page.locator('#saved-title').waitFor();await page.reload();assert.equal(await page.locator('.session').count(),1);assert.match(await page.locator('.session').innerText(),/Test Coffee/);
+ await page.locator('.brew-personal').click();await page.locator('#brew button[type=submit]').click();await finishPour(page);assert.match(await page.locator('.balance').innerText(),/Không chấm điểm hạt riêng/);await page.locator('#taste button[type=submit]').click();await page.locator('#saved-title').waitFor();await page.reload();assert.equal(await page.locator('.session').count(),1);assert.match(await page.locator('.session').innerText(),/Test Coffee/);
  const dl=page.waitForEvent('download');await page.locator('#export-beans').click();assert.equal((await dl).suggestedFilename(),'coffee-bean-profiles.json');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  console.log(path+': actual local English/Vietnamese OCR engine read label fields, missing data stays blank, saved/reloaded, no external HTTP calls');await context.close();

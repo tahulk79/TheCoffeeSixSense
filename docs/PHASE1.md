@@ -4,9 +4,13 @@
 
 Phase 1 is a local-first learning game. It runs without a backend, login, real brewing equipment, remote analytics or credentials. It does not predict extraction or assess objective cup quality. Cloud sync and wider release/analytics work are outside this phase.
 
-The reference recipes are game targets. A player selects one of three beans, edits dose/water/temperature/grind and chooses pulse, steady or fast pouring. The reference button and ratio display help new players start. Three explicit actions simulate bloom, second pour and final pour; their cumulative water always finishes at the selected volume. These steps are not a real-time brewing timer. Technique affects the game score separately from personal sensory notes.
+The reference recipes are game targets. A quick-start button lets a new player (including an existing journal owner who has never played the decision version) try the lesson without editing a form. Recipe controls remain available under optional customization. The first lesson uses a repeatable situation and contextual hints.
 
-After pouring, the game shows simulated balance and one suggested next experiment. Players choose hypothetical notes or actual real-cup impressions; all six intensity ratings and the personal enjoyment rating are optional and start blank. Enjoyment is the sixth-sense metaphor and never changes simulation scores. Save confirmation awards practice XP once and offers replay or a fresh recipe. Cancelling an unsaved brew requires confirmation.
+Three stages simulate bloom, second pour and finish. Each stage has a visible cue and two or three actions with tradeoffs: wet dry patches or leave an even bed undisturbed; pause at high water, feed low water, or address uneven flow; correct a tilted bed or preserve a level one. Actions show immediate explanations and can change the next cue. All actions still complete the planned cumulative volume; these are deliberately simplified game situations, not measured brewing physics or a real-time timer.
+
+Starting approaches affect the situation, not a fixed points penalty. Any approach can achieve a clean run by responding to cues. New starter-bean scores combine the existing reference-recipe score with the decision penalties shown in a ledger; personal sensory notes never affect them. Personal beans retain a null target score and receive only observational game feedback. A three-decision report records what happened and why.
+
+After pouring, the game shows simulated balance and one concrete retry goal. “Try one change” reuses the recipe and scenario: address the first missed decision, make one bounded parameter adjustment after a clean pour, or try a starting approach with a different cue sequence. If an earlier choice changes a downstream cue, the player must observe again rather than blindly follow the old suggestion. This is a short replay loop, not a multi-session Phase 2 journey. Players can save immediately or choose hypothetical notes/real-cup impressions; detailed sensory fields are collapsed, optional and start blank. Enjoyment is the sixth-sense metaphor and never changes simulation scores. Save confirmation awards practice XP once and offers replay or a fresh recipe. Cancelling an unsaved brew requires confirmation.
 
 Both Vietnamese (default) and English cover the entire interface. Switching languages retains the current recipe, pour step and unsaved tasting notes. Language preference and saved history survive reloads when browser storage is available.
 
@@ -14,7 +18,7 @@ Both Vietnamese (default) and English cover the entire interface. Switching lang
 
 The journal keeps the existing `c6s.sessions.v1` storage key and legacy records. Old records without a journal mode are clearly labeled unspecified; new fields are not invented. Comparison distinguishes hypothetical and real-cup modes. Exports include parameters, pouring technique, ratings, notes and discoveries.
 
-Four sequential quests and four practice badges derive from saved history, so existing sessions count. A controlled experiment changes exactly one numeric recipe field or pouring technique between consecutive same-bean sessions and records a discovery.
+Four sequential quests and four practice badges derive from saved history, so existing sessions count. A controlled experiment changes one independent recipe field, starting approach or pour decision in the same scenario, and records a discovery. Downstream responses to changed cues are consequences rather than additional independent changes. Legacy session pairs retain their earlier rules. The journal stores versioned pour runs; malformed runs are preserved as recovery data instead of overwritten. Comparison labels the earlier recipe-only and new decision score models, which are not directly equivalent.
 
 A failed storage write retains the draft, gives no XP and permits retry or draft download. Malformed stored data is never silently overwritten: saving is disabled and the original bytes are available as a recovery download. Journals are local to the browser and origin; export before moving devices or clearing storage. Drafts are not retained across page reloads; use draft download if you need to leave before saving.
 
@@ -42,3 +46,15 @@ These checks exercise both Vite and the standalone artifact at 360, 768 and 1440
 ## Personal beans extension
 
 Phase 1 includes personal bag profiles with packaging/bean photos, manual metadata review and brewing without an invented reference score. Packaging OCR runs locally in the browser using assets bundled with GitHub Pages; no VPS or API key is needed. Explicit labels are proposed for review, and unknown information stays blank. See [BEAN-AI.md](BEAN-AI.md).
+
+## Decision gameplay validation
+
+`tests/pour-game.test.mjs` covers all nine scenario/approach combinations, state-dependent actions, consequences, recovery, immutable state, bounded goals, custom beans without target scores, malformed/legacy journals, controlled experiments and all reachable localized cue/action/effect strings.
+
+Run the new gameplay browser regression with the dev server active:
+
+```sh
+PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/smoke-pour-game.mjs
+```
+
+It exercises quick start, deliberate mistakes and feedback, same-scenario retry, one-change goals, score explanation, language switching, rapid double-click protection, keyboard choices and persisted reports at 360/768/1440px on Vite and Pages. Existing journal/OCR smoke tests use the same visible-choice helper.
