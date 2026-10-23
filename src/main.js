@@ -1,3 +1,4 @@
+import { mountCafe } from './cafe-ui.js';
 import { createPourRun, pourSituation, choosePourAction, pourSummary, gameplayScore, nextPourGoal } from './pour-game.js';
 import { initializeBeanLibrary, getPersonalBeans, renderBeanLibrary } from './bean-library.js';
 import { missionProgress } from './missions.js';
@@ -159,3 +160,5 @@ function bind(activeMission) {
 render();
 
 initializeBeanLibrary().then(()=>{capture();render();});
+
+mountCafe();
