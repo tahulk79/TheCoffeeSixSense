@@ -31,7 +31,13 @@ A web-first specialty coffee learning game where players practice brewing, evalu
 - Initial marketing test budget USD 3,000, deferred until MVP is ready.
 - No game-specific domain, social/advertising accounts or campaigns before MVP.
 
+## Brew quests
+
+The coffee journey includes four quests: save all three starter beans, record three discoveries, change exactly one setting between consecutive brews of the same bean and record the result, then save three brews of one bean with a simulated balance of at least 90. Quests unlock in order; existing saved history counts. Simulation goals are game mechanics, not objective taste measurements.
+
+After changing frontend modules or styles, regenerate the GitHub Pages artifact with `node scripts/build-standalone.mjs --write`. Run `npm test` and `npm run build`; tests reject a stale `docs/index.html`. Pages publishes this self-contained artifact through the manual Pages workflow.
+
 ## Status
-The repository contains a playable Vite frontend with brew simulation, personal tasting reviews, local session history, comparison, discoveries and JSON export. Vietnamese localization and progression remain planned. The original standalone preview is in `docs/index.html`.
+The repository contains a playable Vite frontend with brew simulation, personal tasting reviews, local session history, comparison, discoveries and JSON export. Phase 1 now provides a complete simulated pour-over loop in Vietnamese and English: recipe selection, three pour actions, optional tasting or hypothesis notes, save confirmation, and replay. History, comparison, four quests, XP and badges are available. The standalone Pages application is generated into `docs/index.html`. See [Phase 1 acceptance and validation](docs/PHASE1.md).
 
 Production deployment preparation targets **https://cf.ta79.com** on Ubuntu/Nginx. See [the deployment runbook](docs/DEPLOYMENT.md) for local verification, DNS, HTTPS bootstrap, restricted SSH deployment, approval gates and rollback. Production has not been provisioned or deployed by this change.
