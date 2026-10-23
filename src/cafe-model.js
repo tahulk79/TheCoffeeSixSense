@@ -1,3 +1,4 @@
+export const cafeModelVersion = 'counter-assumptions-v3';
 // A fictional learning model, not a calibrated extraction or sensory predictor.
 export const cafeSpeed = 6;
 export const cafeBeans = [
@@ -46,14 +47,14 @@ export function cafeResult(state,guest=0){
  const b=cafeBeans.find(b=>b.id===state.bean);if(!b||!state.done||!cafeGuests[guest])throw Error('Unfinished cup');
  const yieldRatio=state.extracted/12;
  const zone=yieldRatio<.16?'low':yieldRatio>.23?'high':'balanced';
- const shift=zone==='low'?-1:zone==='high'?1:0;
+ // No empirical sensory fit: acidity and bitterness stay fictional lot attributes.
  const clamp=n=>Math.max(1,Math.min(5,Math.round(n)));
  const concentration=state.drained>0?state.cupSolubles/state.drained:0;
  const strength=concentration<.009?1:concentration<.012?2:concentration<.016?3:concentration<.019?4:5;
- const flavor=[clamp(b.base[0]-shift),clamp(b.base[1]+shift),strength];
+ const flavor=[b.base[0],b.base[1],strength];
  const distance=flavor.reduce((sum,n,i)=>sum+Math.abs(n-cafeGuests[guest].target[i]),0);
  const fit=distance<=1?'great':distance<=3?'close':'different';
- return {version:2,bean:state.bean,heat:state.heat,flavor,guest,fit,distance,zone,time:state.time,pourTime:state.pourTime,waitTime:state.time-state.pourTime,overflow:Math.round(state.overflow),beverage:Math.round(state.drained),holds:state.holds,contact:state.contact,events:state.events};
+ return {version:3,kind:'game_simulation',modelVersion:cafeModelVersion,evidence:{flavor:'fictional_lot_profile',physics:'uncalibrated_game_assumption',sourceReview:'pending_primary_review',confidence:null},bean:state.bean,heat:state.heat,flavor,guest,fit,distance,zone,time:state.time,pourTime:state.pourTime,waitTime:state.time-state.pourTime,overflow:Math.round(state.overflow),beverage:Math.round(state.drained),holds:state.holds,contact:state.contact,events:state.events};
 }
 export function cafeAdvice(r){
  if(r.fit==='great')return 'success';

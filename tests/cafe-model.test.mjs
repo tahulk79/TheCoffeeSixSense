@@ -11,3 +11,5 @@ test('guest success and advice share a single verdict; recommendations respect t
 test('last small amount completes without a stuck 179ml prompt and without negative waiting time',()=>{let s={...cafeStart(),started:true,poured:179.2,water:1,absorbed:24,drained:154.2};s=cafeTick(s,true,.016);assert.equal(s.poured,180);assert.ok(s.pourTime<=s.time);assert.throws(()=>cafeTick(s,false,NaN));});
 
 test('each guest has a reachable satisfying cup using ordinary pulses',()=>{for(const [guest,bean,heat] of [[0,'brazil',88],[1,'ethiopia',88],[2,'brazil',96]]){let s=cafeStart(bean,heat),on=true;for(let i=0;i<4000&&!s.done;i++){if(s.water>40)on=false;if(s.water<10)on=true;s=cafeTick(s,on,.02);}assert.equal(cafeResult(s,guest).fit,'great',`guest ${guest}`);}});
+
+test('game acidity and bitterness are fictional lot attributes, not predictions from extraction',()=>{const a=brew(88,false).result,b=brew(96,true).result;assert.deepEqual(a.flavor.slice(0,2),b.flavor.slice(0,2));assert.equal(a.kind,'game_simulation');assert.equal(a.version,3);assert.equal(a.evidence.confidence,null);assert.equal(a.evidence.flavor,'fictional_lot_profile');});
