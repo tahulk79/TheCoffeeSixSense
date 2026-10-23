@@ -1,3 +1,4 @@
+import { pourSummary, validPourRun } from './pour-game.js';
 const fields = ['dose', 'water', 'temp', 'grind'];
 const starterBeans = ['ethiopia', 'colombia', 'brazil'];
 
@@ -9,7 +10,14 @@ export function missionProgress(sessions) {
     const previous = sessions[index - 1];
     if (!previous || current.bean !== previous.bean || !(typeof current.discovery === 'string' && current.discovery.trim())) return false;
     if (!fields.every(field => Number.isFinite(current.parameters?.[field]) && Number.isFinite(previous.parameters?.[field]))) return false;
-    return fields.filter(field => current.parameters[field] !== previous.parameters[field]).length + Number((current.technique || 'pulse') !== (previous.technique || 'pulse')) === 1;
+    if(Boolean(current.pourRun)!==Boolean(previous.pourRun))return false;
+    if(current.pourRun&&current.pourRun.scenario!==previous.pourRun.scenario)return false;
+    if(current.pourRun&&(!validPourRun(current.pourRun,true)||!validPourRun(previous.pourRun,true)))return false;
+    const before=previous.pourRun?pourSummary(previous.pourRun).decisions:[];
+    const after=current.pourRun?pourSummary(current.pourRun).decisions:[];
+    // A response to a newly changed cue is a consequence, not another independent variable.
+    const actionChanges=after.filter((decision,i)=>decision.cue===before[i].cue&&decision.action!==before[i].action).length;
+    return fields.filter(field => current.parameters[field] !== previous.parameters[field]).length + Number((current.technique || 'pulse') !== (previous.technique || 'pulse')) + actionChanges === 1;
   });
   const steadyBean = starterBeans.find(bean => sessions.filter(s => s.bean === bean && Number.isFinite(s.simulatedScore) && s.simulatedScore >= 90).length >= 3);
   const bestRun = Math.max(0, ...starterBeans.map(bean => sessions.filter(s => s.bean === bean && Number.isFinite(s.simulatedScore) && s.simulatedScore >= 90).length));

@@ -19,6 +19,10 @@ html{scroll-behavior:smooth}p{line-height:1.65}button,select,input{min-height:44
 
 .bean-fieldset{border:0;margin:0;padding:0;min-width:0}
 .ocr-progress{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0}.ocr-progress progress{accent-color:#dca66b;flex:1;min-width:100px}.ocr-text{white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;font:inherit;font-size:.85rem;padding:14px;border:1px solid #67503b;border-radius:12px}
+.quick-play{padding:16px;background:#362819;border:1px solid #947150;border-radius:14px;margin:0 0 20px}.quick-play p{margin-top:0}.quick-play button{width:100%}#recipe-controls{margin-bottom:18px}#recipe-controls>.fields{margin-top:16px}#sensory-details{margin:18px 0;padding:0 14px;border:1px solid #67503b;border-radius:12px}.pour-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;text-align:left}.pour-choice{display:block;padding:18px;background:#362819;border:1px solid #947150;color:#f4eadb;text-align:left;min-height:115px}.pour-choice:hover{background:#4b3522;border-color:#e9c49b}.pour-choice strong,.pour-choice span{display:block}.pour-choice span{font-weight:400;font-size:.88rem;line-height:1.6;margin-top:8px;color:#d6c6b2}.observation{border:1px solid #947150;border-radius:14px;padding:16px;margin:20px 0;background:#1b1510}.observation p{margin:8px 0}.coach{border-left:3px solid #dca66b;padding:10px 16px;text-align:left;background:#362819;border-radius:0 10px 10px 0}.decision-feedback{padding:14px 18px;margin-bottom:20px;border-radius:12px;text-align:left;border:1px solid #81996c}.decision-feedback p{margin-bottom:0}.decision-good{color:#c9e0b6}.decision-learn{color:#efc191}.decision-feedback.decision-learn{border-color:#b98651}.pour-volume{display:flex;align-items:center;justify-content:center;gap:20px;margin-top:24px}.pour-volume .cup{flex-shrink:0;margin:10px}.pour-volume>div:last-child{max-width:350px;flex:1;text-align:left}.pour-volume progress{width:100%}.score-ledger{padding:12px;background:#1b1510;border-radius:10px;font-size:.9rem}.pour-report{border:1px solid #67503b;padding:0 16px;border-radius:12px;margin:16px 0}.pour-report ol{padding-left:22px}.pour-report li{padding:10px 0;border-top:1px solid #49372a}.pour-report li p{margin:7px 0;font-size:.9rem}.dripper{position:relative;width:165px;height:95px;margin:20px auto;border:3px solid #b8a48c;border-top:0;border-radius:10px 10px 65px 65px;overflow:hidden;background:#21150b}.grounds{position:absolute;bottom:10px;left:12px;right:12px;height:44px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#8c5931 1px,transparent 2px),#53301d;background-size:8px 8px}.waterline{position:absolute;left:0;right:0;bottom:38px;height:15px;background:#bf9a6c80;border-top:2px solid #dfbd8b;transition:height .3s}.dripper[data-cue=dryBloom] .grounds,.dripper[data-cue=unevenFlow] .grounds{background:radial-gradient(ellipse at 30% 50%,#d0a56a 0 18%,transparent 20%),radial-gradient(ellipse at 70% 40%,#c59961 0 12%,transparent 14%),#53301d}.dripper[data-cue=highWater] .waterline{height:48px}.dripper[data-cue=lowWater] .waterline{height:4px}.dripper[data-cue=tiltedBed] .grounds{transform:rotate(-12deg)}.dripper[data-cue=levelBed] .waterline,.dripper[data-cue=tiltedBed] .waterline{height:4px}@media(max-width:550px){.pour-choices{grid-template-columns:1fr}.pour-choice{min-height:90px}.pour-volume{gap:8px}.pour-volume .cup{width:72px;height:70px;margin:4px}.pour-volume p{font-size:.85rem}.observation{padding:12px}}
+@media(prefers-reduced-motion:reduce){.waterline{transition:none}}
+
+.quick-play p{margin:12px 0 0}
 </style><script type="module">
 const weights = { dose: 3, water: 0.16, temp: 4, grind: 3 };
 function nextExperiment(bean, parameters) {
@@ -51,7 +55,14 @@ function missionProgress(sessions) {
     const previous = sessions[index - 1];
     if (!previous || current.bean !== previous.bean || !(typeof current.discovery === 'string' && current.discovery.trim())) return false;
     if (!fields.every(field => Number.isFinite(current.parameters?.[field]) && Number.isFinite(previous.parameters?.[field]))) return false;
-    return fields.filter(field => current.parameters[field] !== previous.parameters[field]).length + Number((current.technique || 'pulse') !== (previous.technique || 'pulse')) === 1;
+    if(Boolean(current.pourRun)!==Boolean(previous.pourRun))return false;
+    if(current.pourRun&&current.pourRun.scenario!==previous.pourRun.scenario)return false;
+    if(current.pourRun&&(!validPourRun(current.pourRun,true)||!validPourRun(previous.pourRun,true)))return false;
+    const before=previous.pourRun?pourSummary(previous.pourRun).decisions:[];
+    const after=current.pourRun?pourSummary(current.pourRun).decisions:[];
+    // A response to a newly changed cue is a consequence, not another independent variable.
+    const actionChanges=after.filter((decision,i)=>decision.cue===before[i].cue&&decision.action!==before[i].action).length;
+    return fields.filter(field => current.parameters[field] !== previous.parameters[field]).length + Number((current.technique || 'pulse') !== (previous.technique || 'pulse')) + actionChanges === 1;
   });
   const steadyBean = starterBeans.find(bean => sessions.filter(s => s.bean === bean && Number.isFinite(s.simulatedScore) && s.simulatedScore >= 90).length >= 3);
   const bestRun = Math.max(0, ...starterBeans.map(bean => sessions.filter(s => s.bean === bean && Number.isFinite(s.simulatedScore) && s.simulatedScore >= 90).length));
@@ -102,7 +113,8 @@ function loadJournal(raw) {
     const sessions = JSON.parse(raw);
     const optionalText = (s, key) => s[key] === undefined || typeof s[key] === 'string';
     const validTaste = taste => taste === undefined || taste === null || (typeof taste === 'object' && !Array.isArray(taste) && ['aroma','acidity','sweetness','bitterness','body','aftertaste'].every(k => taste[k] === undefined || taste[k] === null || (Number.isInteger(taste[k]) && taste[k] >= 1 && taste[k] <= 5)));
-    const validOptional = s => optionalText(s,'notes') && optionalText(s,'discovery') && validTaste(s.taste) && (s.technique === undefined || ['pulse','steady','fast'].includes(s.technique)) && (s.ratingMode === undefined || ['real','hypothesis'].includes(s.ratingMode)) && (s.mood === undefined || s.mood === null || (Number.isInteger(s.mood) && s.mood >= 1 && s.mood <= 5));
+    const validSavedRun = run => run === undefined || (run && run.version === 1 && Number.isInteger(run.scenario) && run.scenario >= 0 && run.scenario <= 2 && ['pulse','steady','fast'].includes(run.technique) && Array.isArray(run.actions) && run.actions.length === 3 && run.actions.every((action,index) => [['swirl','settle'],['pause','feed','redistribute'],['recenter','finishEven']][index].includes(action)));
+    const validOptional = s => validSavedRun(s.pourRun) && (s.pourRun === undefined || s.pourRun.technique === s.technique) && optionalText(s,'notes') && optionalText(s,'discovery') && validTaste(s.taste) && (s.technique === undefined || ['pulse','steady','fast'].includes(s.technique)) && (s.ratingMode === undefined || ['real','hypothesis'].includes(s.ratingMode)) && (s.mood === undefined || s.mood === null || (Number.isInteger(s.mood) && s.mood >= 1 && s.mood <= 5));
     if (!Array.isArray(sessions) || !sessions.every(s => s && validOptional(s) && (coffeeBeans.some(b => b.id === s.bean) || (typeof s.bean === 'string' && /^custom-[a-zA-Z0-9-]+$/.test(s.bean) && typeof s.beanProfile?.name === 'string' && s.beanProfile.name.trim().length > 0 && s.beanProfile.name.length <= 160)) && validRecipe(s.parameters) && typeof s.date === 'string' && Number.isFinite(Date.parse(s.date)) && ((s.bean.startsWith('custom-') && s.simulatedScore === null) || (!s.bean.startsWith('custom-') && Number.isFinite(s.simulatedScore) && s.simulatedScore >= 0 && s.simulatedScore <= 100)))) throw new Error('Invalid journal');
     return { sessions, writable: true };
   } catch { return { sessions: [], writable: false, raw }; }
@@ -112,31 +124,469 @@ function tasteMean(session) {
   return values.length ? (values.reduce((a,b) => a+b,0) / values.length).toFixed(1) : '—';
 }
 
+const pourStageNames = ['bloom','middle','finish'];
+const pourChoices = [['swirl','settle'],['pause','feed','redistribute'],['recenter','finishEven']];
+function validPourRun(run, complete=false) {
+ return Boolean(run && run.version===1 && Number.isInteger(run.scenario) && run.scenario>=0 && run.scenario<=2 && ['pulse','steady','fast'].includes(run.technique) && Array.isArray(run.actions) && run.actions.length<=3 && (!complete||run.actions.length===3) && run.actions.every((action,index)=>pourChoices[index].includes(action)));
+}
+function createPourRun(scenario=0,technique='pulse') {
+ const run={version:1,scenario,technique,actions:[]};if(!validPourRun(run))throw new Error('Invalid pour run');return run;
+}
+function evaluatePourChoice(run,index,action) {
+ const before={...run,actions:run.actions.slice(0,index)};const cue=pourSituation(before);
+ const good=action===cue.recommended;
+ return {stage:pourStageNames[index],cue:cue.cue,action,good,penalty:good?0:cue.penalty,effect:good?cue.success:cue.miss};
+}
+function pourSituation(run) {
+ if(!validPourRun(run)||run.actions.length>=3)throw new Error('No active pour stage');
+ const index=run.actions.length;let cue,recommended,success,miss,penalty;
+ if(index===0){
+  const dry=run.technique==='fast'||run.scenario===2||(run.technique==='pulse'&&run.scenario===0);
+  cue=dry?'dryBloom':'evenBloom';recommended=dry?'swirl':'settle';success=dry?'wetGrounds':'keptBed';miss=dry?'leftDry':'extraAgitation';penalty=6;
+ }else if(index===1){
+  const first=evaluatePourChoice(run,0,run.actions[0]);
+  cue=first.effect==='leftDry'?'unevenFlow':run.technique==='fast'||run.scenario===0?'highWater':'lowWater';
+  recommended=cue==='unevenFlow'?'redistribute':cue==='highWater'?'pause':'feed';
+  success=cue==='unevenFlow'?'recoveredFlow':cue==='highWater'?'drainedWater':'maintainedWater';
+  miss=cue==='unevenFlow'?'keptUneven':cue==='highWater'?'crowdedWater':'lostWater';penalty=8;
+ }else{
+  const middle=evaluatePourChoice(run,1,run.actions[1]);
+  const tilted=!middle.good||run.scenario===2;
+  cue=tilted?'tiltedBed':'levelBed';recommended=tilted?'recenter':'finishEven';success=tilted?'centeredFinish':'calmFinish';miss=tilted?'leftTilted':'disturbedFinish';penalty=6;
+ }
+ return {stage:pourStageNames[index],cue,recommended,success,miss,penalty,choices:pourChoices[index]};
+}
+function choosePourAction(run,action) {
+ const situation=pourSituation(run);if(!situation.choices.includes(action))throw new Error('Invalid choice for this stage');
+ const feedback=evaluatePourChoice(run,run.actions.length,action);
+ return {run:{...run,actions:[...run.actions,action]},feedback};
+}
+function pourSummary(run) {
+ if(!validPourRun(run))throw new Error('Invalid pour run');
+ const decisions=run.actions.map((action,index)=>evaluatePourChoice(run,index,action));
+ return {decisions,penalty:decisions.reduce((sum,d)=>sum+d.penalty,0),good:decisions.filter(d=>d.good).length};
+}
+function gameplayScore(bean,parameters,run) {
+ if(!validPourRun(run,true))throw new Error('Complete three decisions first');
+ if(!bean||!validRecipe(parameters))throw new Error('Invalid recipe');
+ if(bean.custom)return null;
+ return Math.max(0,brewScore(bean,parameters,'pulse')-pourSummary(run).penalty);
+}
+function nextPourGoal(bean,parameters,run) {
+ if(!validPourRun(run,true))throw new Error('Complete three decisions first');
+ const summary=pourSummary(run);const mistake=summary.decisions.find(d=>!d.good);
+ if(mistake){const before={...run,actions:run.actions.slice(0,pourStageNames.indexOf(mistake.stage))};return {type:'action',stage:mistake.stage,action:pourSituation(before).recommended};}
+ if(!bean.custom){
+  const hint=experimentHint(bean,parameters,'pulse');
+  if(hint.field!=='matched'){
+   const steps={dose:1,water:10,temp:1,grind:1};const direction=hint.direction==='raise'?1:-1;
+   const target=bean.target[hint.field];const next=direction>0?Math.min(target,parameters[hint.field]+steps[hint.field]):Math.max(target,parameters[hint.field]-steps[hint.field]);
+   return {type:'parameter',field:hint.field,value:Math.max(limits[hint.field][0],Math.min(limits[hint.field][1],next))};
+  }
+ }
+ return {type:'technique',value:run.technique==='fast'?'steady':run.technique==='steady'?'fast':run.scenario===0?'steady':'fast'};
+}
+
 const copy = {
-  vi: {
-    startingRecipe:'Dùng công thức khởi đầu',
-    noCustomScore:'Không chấm điểm hạt riêng', personalBean:'Hạt của tôi', customHint:'Hạt riêng chưa có công thức chuẩn. Hãy lưu một phiên làm mốc, sau đó chỉ thay một thông số và so sánh cảm nhận của bạn. Công thức khởi đầu chỉ là gợi ý để thử.',
-    title:'Pha. Nếm. Khám phá.', intro:'Một góc nhỏ để học pha pour-over, ghi lại cảm nhận và tìm ra ly cà phê của riêng bạn.', language:'Ngôn ngữ',
-    guide:'Chơi như thế nào?', guideText:'1. Chọn hạt và công thức. 2. Rót qua ba bước mô phỏng. 3. Ghi cảm nhận hoặc giả thuyết. 4. Lưu, so sánh và thử lại. Không cần có dụng cụ thật để chơi.', disclaimer:'Điểm mô phỏng thuộc mô hình trò chơi, không đo chất lượng cà phê thật. “Giác quan thứ sáu” là cảm xúc cá nhân, không phải khẳng định khoa học.',
-    desk:'Bàn pha cà phê', memory:'Nhật ký cà phê', journey:'Hành trình của bạn', quests:'Nhiệm vụ pha cà phê', level:'Cấp', nextLevel:'XP để lên cấp', xpText:'Mỗi phiên đã lưu: 10 XP. Mỗi phát hiện: thêm 5 XP. Tiến bộ đến từ luyện tập.',
-    bean:'Hạt cà phê', floral:'Hương hoa · Cam chanh', caramel:'Caramel · Trái cây đỏ', chocolate:'Chocolate · Các loại hạt', dose:'Lượng cà phê (g)', water:'Lượng nước (ml)', temp:'Nhiệt độ (°C)', grind:'Cỡ xay (số càng lớn càng thô)', technique:'Cách rót', pulse:'Rót theo nhịp', steady:'Rót đều liên tục', fast:'Rót nhanh', techniqueHelp:'Trong mô hình này, rót theo nhịp gần công thức mẫu nhất. Hãy thử các cách rót để so sánh.', ratio:'Tỷ lệ cà phê : nước', reference:'Dùng công thức mẫu', start:'Bắt đầu pha', configure:'Công thức', pouring:'Rót nước', tasting:'Nếm & ghi lại', saved:'Đã lưu',
-    bloom:'Ủ nở', middle:'Rót lần hai', finish:'Rót hoàn tất', bloomHelp:'Làm ướt đều bột cà phê để bắt đầu ủ nở.', middleHelp:'Thêm nước nhẹ nhàng, giữ dòng rót ổn định.', finishHelp:'Rót phần nước còn lại rồi để cà phê chảy xuống.', pour:'Rót đến', ml:'ml', virtualTime:'Đây là thao tác mô phỏng; không phải đồng hồ hướng dẫn pha thực tế.', poured:'Đã rót', cancel:'Hủy lượt pha', cancelConfirm:'Hủy lượt pha chưa lưu và trở về công thức?',
-    balance:'Độ cân bằng mô phỏng', feedback:'Thử nghiệm tiếp theo', raise:'Tăng', lower:'Giảm', hintEnd:'ở lần pha sau, giữ các thông số khác để so sánh. Gợi ý chỉ theo mô hình trò chơi.', matched:'Bạn đã khớp công thức mẫu! Hãy thử hạt khác hoặc thay một thông số để khám phá.', techniqueHint:'Thử rót theo nhịp với cùng công thức để so sánh.',
-    tasteTitle:'Bạn cảm nhận thế nào?', mode:'Loại ghi chép', hypothesis:'Giả thuyết khi chơi mô phỏng', real:'Cảm nhận từ ly cà phê thật', legacy:'Ghi chép cũ · chưa phân loại', modeHelp:'Chỉ chọn “ly cà phê thật” khi bạn thực sự đã pha và nếm. Để trống tiêu chí chưa đánh giá.', unrated:'Chưa đánh giá', aroma:'Hương thơm', acidity:'Độ chua', sweetness:'Độ ngọt', bitterness:'Độ đắng', body:'Độ dày', aftertaste:'Hậu vị', ratingsHelp:'Thang 1–5 biểu thị cường độ cảm nhận, không phải điểm chất lượng. Đánh giá là tùy chọn.', mood:'Cảm xúc sau ly cà phê · tùy chọn', moodHelp:'“Giác quan thứ sáu”: mức vui thích cá nhân (1–5), không cộng vào điểm mô phỏng.', notes:'Ghi chú nếm', discovery:'Phát hiện / điều muốn thử tiếp', notesPlaceholder:'Bạn nhận thấy điều gì?', discoveryPlaceholder:'Nếu thay một điều, bạn sẽ thử gì?', save:'Lưu vào nhật ký', saveSuccess:'Đã lưu phiên pha và tiến độ của bạn.', retry:'Pha lại công thức này', newBrew:'Pha lượt mới', saveError:'Chưa lưu được: bộ nhớ trình duyệt bị chặn hoặc đã đầy. Ghi chép vẫn ở đây; hãy thử lưu lại hoặc tải bản nháp.', draftExport:'Tải bản nháp', storageError:'Không đọc được nhật ký. Dữ liệu cũ được giữ nguyên; hãy tải bản sao để khôi phục. Bạn vẫn có thể thử pha nhưng chưa lưu được.', recovery:'Tải bản sao dữ liệu gốc',
-    export:'Xuất nhật ký JSON', empty:'Chưa có phiên nào. Bắt đầu với công thức mẫu và lưu ly đầu tiên nhé.', compare:'So sánh hai phiên', sessionA:'Phiên A', sessionB:'Phiên B', measure:'Thông số', sameSession:'Chọn hai phiên khác nhau để so sánh.', personal:'Trung bình tiêu chí đã đánh giá', noDiscovery:'Chưa ghi phát hiện', noNotes:'Chưa có ghi chú', noTechnique:'Chưa ghi cách rót', compareHelp:'Điểm mô phỏng và cảm nhận cá nhân là hai thông tin riêng biệt. Không so trung bình của các loại ghi chép như một điểm chất lượng.',
-    questHelp:'Hoàn thành theo thứ tự. Nhật ký đã có cũng được tính vào tiến độ.', complete:'Hoàn thành', locked:'Chưa mở', current:'Nhiệm vụ tiếp theo', startQuest:'Bắt đầu nhiệm vụ', lastRecipe:'Dùng công thức gần nhất', allQuests:'Bạn đã hoàn thành tất cả nhiệm vụ! Tiếp tục khám phá công thức của riêng mình.', exploreTitle:'Làm quen các loại hạt', exploreDescription:'Lưu ít nhất một phiên với mỗi loại trong ba hạt khởi đầu.', discoverTitle:'Nhận ra điều mới', discoverDescription:'Lưu ba phiên có ghi phát hiện hoặc điều muốn thử tiếp.', experimentTitle:'Chỉ thay một điều', experimentDescription:'Lưu hai phiên liên tiếp cùng loại hạt, chỉ thay một thông số công thức hoặc cách rót. Ghi phát hiện ở phiên thứ hai.', steadyTitle:'Tìm nhịp pha của bạn', steadyDescription:'Lưu ba phiên cùng loại hạt đạt từ 90 điểm cân bằng mô phỏng. Đây là mục tiêu trong trò chơi.',
-    explorePrompt:'Đã chọn hạt bạn chưa thử. Pha và lưu để tiến bước.', discoverPrompt:'Sau khi pha, viết một phát hiện trước khi lưu.', experimentPrompt:'Đã lấy công thức gần nhất. Chỉ thay một thông số hoặc cách rót, rồi ghi phát hiện.', steadyPrompt:'Dùng gợi ý để đạt 90+ điểm mô phỏng với cùng loại hạt qua ba phiên.',
-    'First cup':'Ly đầu tiên', 'Save your first brew':'Lưu phiên pha đầu tiên', 'Curious taster':'Người nếm tò mò', 'Record three discoveries':'Ghi ba phát hiện', 'Bean explorer':'Nhà khám phá hạt', 'Save brews with all three starter beans':'Thử cả ba loại hạt', 'Practice makes progress':'Luyện tập để tiến bộ', 'Save five brews':'Lưu năm phiên pha'
+  "vi": {
+    "startingRecipe": "Dùng công thức khởi đầu",
+    "noCustomScore": "Không chấm điểm hạt riêng",
+    "personalBean": "Hạt của tôi",
+    "customHint": "Hạt riêng chưa có công thức chuẩn. Hãy lưu một phiên làm mốc, sau đó chỉ thay một thông số và so sánh cảm nhận của bạn. Công thức khởi đầu chỉ là gợi ý để thử.",
+    "title": "Pha. Nếm. Khám phá.",
+    "intro": "Một góc nhỏ để học pha pour-over, ghi lại cảm nhận và tìm ra ly cà phê của riêng bạn.",
+    "language": "Ngôn ngữ",
+    "guide": "Chơi như thế nào?",
+    "guideText": "Chọn chơi thử, quan sát 3 tình huống và chọn cách xử lý. Xem tác động, lưu lượt chơi rồi thử lại đúng một thay đổi. Không cần có dụng cụ thật.",
+    "disclaimer": "Điểm mô phỏng thuộc mô hình trò chơi, không đo chất lượng cà phê thật. “Giác quan thứ sáu” là cảm xúc cá nhân, không phải khẳng định khoa học.",
+    "desk": "Bàn pha cà phê",
+    "memory": "Nhật ký cà phê",
+    "journey": "Hành trình của bạn",
+    "quests": "Nhiệm vụ pha cà phê",
+    "level": "Cấp",
+    "nextLevel": "XP để lên cấp",
+    "xpText": "Mỗi phiên đã lưu: 10 XP. Mỗi phát hiện: thêm 5 XP. Tiến bộ đến từ luyện tập.",
+    "bean": "Hạt cà phê",
+    "floral": "Hương hoa · Cam chanh",
+    "caramel": "Caramel · Trái cây đỏ",
+    "chocolate": "Chocolate · Các loại hạt",
+    "dose": "Lượng cà phê (g)",
+    "water": "Lượng nước (ml)",
+    "temp": "Nhiệt độ (°C)",
+    "grind": "Cỡ xay (số càng lớn càng thô)",
+    "technique": "Cách rót",
+    "pulse": "Rót theo nhịp",
+    "steady": "Rót đều liên tục",
+    "fast": "Rót nhanh",
+    "techniqueHelp": "Cách rót khởi đầu thay đổi tình huống trong game. Không bị trừ điểm chỉ vì chọn một cách rót; hãy quan sát và điều chỉnh trong lúc pha.",
+    "ratio": "Tỷ lệ cà phê : nước",
+    "reference": "Dùng công thức mẫu",
+    "start": "Bắt đầu pha",
+    "configure": "Công thức",
+    "pouring": "Rót nước",
+    "tasting": "Nếm & ghi lại",
+    "saved": "Đã lưu",
+    "bloom": "Ủ nở",
+    "middle": "Rót lần hai",
+    "finish": "Rót hoàn tất",
+    "bloomHelp": "Làm ướt đều bột cà phê để bắt đầu ủ nở.",
+    "middleHelp": "Thêm nước nhẹ nhàng, giữ dòng rót ổn định.",
+    "finishHelp": "Rót phần nước còn lại rồi để cà phê chảy xuống.",
+    "pour": "Rót đến",
+    "ml": "ml",
+    "virtualTime": "Đây là tình huống mô phỏng để luyện quan sát, không phải phép đo hay hướng dẫn thời gian cho ly cà phê thật.",
+    "poured": "Đã rót",
+    "cancel": "Hủy lượt pha",
+    "cancelConfirm": "Hủy lượt pha chưa lưu và trở về công thức?",
+    "balance": "Độ cân bằng mô phỏng",
+    "feedback": "Thử nghiệm tiếp theo",
+    "raise": "Tăng",
+    "lower": "Giảm",
+    "hintEnd": "ở lần pha sau, giữ các thông số khác để so sánh. Gợi ý chỉ theo mô hình trò chơi.",
+    "matched": "Bạn đã khớp công thức mẫu! Hãy thử hạt khác hoặc thay một thông số để khám phá.",
+    "techniqueHint": "Thử rót theo nhịp với cùng công thức để so sánh.",
+    "tasteTitle": "Bạn cảm nhận thế nào?",
+    "mode": "Loại ghi chép",
+    "hypothesis": "Giả thuyết khi chơi mô phỏng",
+    "real": "Cảm nhận từ ly cà phê thật",
+    "legacy": "Ghi chép cũ · chưa phân loại",
+    "modeHelp": "Chỉ chọn “ly cà phê thật” khi bạn thực sự đã pha và nếm. Để trống tiêu chí chưa đánh giá.",
+    "unrated": "Chưa đánh giá",
+    "aroma": "Hương thơm",
+    "acidity": "Độ chua",
+    "sweetness": "Độ ngọt",
+    "bitterness": "Độ đắng",
+    "body": "Độ dày",
+    "aftertaste": "Hậu vị",
+    "ratingsHelp": "Thang 1–5 biểu thị cường độ cảm nhận, không phải điểm chất lượng. Đánh giá là tùy chọn.",
+    "mood": "Cảm xúc sau ly cà phê · tùy chọn",
+    "moodHelp": "“Giác quan thứ sáu”: mức vui thích cá nhân (1–5), không cộng vào điểm mô phỏng.",
+    "notes": "Ghi chú nếm",
+    "discovery": "Phát hiện / điều muốn thử tiếp",
+    "notesPlaceholder": "Bạn nhận thấy điều gì?",
+    "discoveryPlaceholder": "Nếu thay một điều, bạn sẽ thử gì?",
+    "save": "Lưu vào nhật ký",
+    "saveSuccess": "Đã lưu phiên pha và tiến độ của bạn.",
+    "retry": "Pha lại công thức này",
+    "newBrew": "Pha lượt mới",
+    "saveError": "Chưa lưu được: bộ nhớ trình duyệt bị chặn hoặc đã đầy. Ghi chép vẫn ở đây; hãy thử lưu lại hoặc tải bản nháp.",
+    "draftExport": "Tải bản nháp",
+    "storageError": "Không đọc được nhật ký. Dữ liệu cũ được giữ nguyên; hãy tải bản sao để khôi phục. Bạn vẫn có thể thử pha nhưng chưa lưu được.",
+    "recovery": "Tải bản sao dữ liệu gốc",
+    "export": "Xuất nhật ký JSON",
+    "empty": "Chưa có phiên nào. Bắt đầu với công thức mẫu và lưu ly đầu tiên nhé.",
+    "compare": "So sánh hai phiên",
+    "sessionA": "Phiên A",
+    "sessionB": "Phiên B",
+    "measure": "Thông số",
+    "sameSession": "Chọn hai phiên khác nhau để so sánh.",
+    "personal": "Trung bình tiêu chí đã đánh giá",
+    "noDiscovery": "Chưa ghi phát hiện",
+    "noNotes": "Chưa có ghi chú",
+    "noTechnique": "Chưa ghi cách rót",
+    "compareHelp": "Điểm mô phỏng và cảm nhận cá nhân là hai thông tin riêng biệt. Không so trung bình của các loại ghi chép như một điểm chất lượng. Điểm ở mô hình cũ và mô hình lựa chọn mới không tương đương trực tiếp.",
+    "questHelp": "Hoàn thành theo thứ tự. Nhật ký đã có cũng được tính vào tiến độ.",
+    "complete": "Hoàn thành",
+    "locked": "Chưa mở",
+    "current": "Nhiệm vụ tiếp theo",
+    "startQuest": "Bắt đầu nhiệm vụ",
+    "lastRecipe": "Dùng công thức gần nhất",
+    "allQuests": "Bạn đã hoàn thành tất cả nhiệm vụ! Tiếp tục khám phá công thức của riêng mình.",
+    "exploreTitle": "Làm quen các loại hạt",
+    "exploreDescription": "Lưu ít nhất một phiên với mỗi loại trong ba hạt khởi đầu.",
+    "discoverTitle": "Nhận ra điều mới",
+    "discoverDescription": "Lưu ba phiên có ghi phát hiện hoặc điều muốn thử tiếp.",
+    "experimentTitle": "Chỉ thay một điều",
+    "experimentDescription": "Thử lại cùng hạt và tình huống, chỉ đổi một thông số, cách rót hoặc quyết định ban đầu. Tiếp tục quan sát tình huống phát sinh và ghi phát hiện ở phiên sau.",
+    "steadyTitle": "Tìm nhịp pha của bạn",
+    "steadyDescription": "Lưu ba phiên cùng loại hạt đạt từ 90 điểm cân bằng mô phỏng. Đây là mục tiêu trong trò chơi.",
+    "explorePrompt": "Đã chọn hạt bạn chưa thử. Pha và lưu để tiến bước.",
+    "discoverPrompt": "Sau khi pha, viết một phát hiện trước khi lưu.",
+    "experimentPrompt": "Đã lấy công thức gần nhất. Chỉ thay một thông số hoặc cách rót, rồi ghi phát hiện.",
+    "steadyPrompt": "Dùng gợi ý để đạt 90+ điểm mô phỏng với cùng loại hạt qua ba phiên.",
+    "First cup": "Ly đầu tiên",
+    "Save your first brew": "Lưu phiên pha đầu tiên",
+    "Curious taster": "Người nếm tò mò",
+    "Record three discoveries": "Ghi ba phát hiện",
+    "Bean explorer": "Nhà khám phá hạt",
+    "Save brews with all three starter beans": "Thử cả ba loại hạt",
+    "Practice makes progress": "Luyện tập để tiến bộ",
+    "Save five brews": "Lưu năm phiên pha",
+    "quickPlay": "Chơi thử với công thức mẫu",
+    "quickPlayHelp": "Lượt đầu chỉ cần quan sát và chọn cách xử lý qua 3 tình huống. Ghi chú và đánh giá đều tùy chọn.",
+    "recipeTuning": "Tùy chỉnh công thức · tùy chọn",
+    "observe": "Quan sát trong mô phỏng",
+    "choosePour": "Bạn sẽ xử lý thế nào?",
+    "previousDecision": "Kết quả bước trước",
+    "nextVolume": "Sau lựa chọn, rót đến",
+    "observedWell": "lựa chọn phù hợp tình huống",
+    "decisionsTitle": "Lựa chọn và tác động của bạn",
+    "recipeBase": "Điểm công thức mẫu",
+    "decisionImpact": "Ảnh hưởng thao tác",
+    "customDecisionOnly": "Phản hồi thao tác chỉ mô tả tình huống trong game; không đánh giá hạt thật",
+    "quickReflect": "Bạn có thể lưu ngay, hoặc ghi một điều nhận ra. Không cần điền toàn bộ bảng nếm để hoàn thành lượt chơi.",
+    "sensoryDetails": "Cảm nhận chi tiết · tùy chọn",
+    "goalAction": "Lượt sau hãy thử ở bước",
+    "goalParameter": "Chỉ đổi một thông số",
+    "goalTechnique": "Chỉ đổi cách rót khởi đầu",
+    "keepRecipe": "Giữ nguyên công thức và điều kiện khởi đầu để nhận ra tác động.",
+    "keepOthers": "Giữ các phần còn lại và quan sát lại.",
+    "tryNextGoal": "Thử lại một thay đổi",
+    "goalThisStep": "Đây là bước bạn muốn thử khác đi. Đọc tình huống rồi chọn cách xử lý.",
+    "goalSituationChanged": "Lựa chọn trước đó đã làm tình huống đổi khác. Hãy quan sát lại thay vì làm theo gợi ý cũ.",
+    "scoreModel": "Mô hình điểm",
+    "decisionModel": "Công thức + lựa chọn rót · v1",
+    "legacyModel": "Công thức cũ",
+    "swirlAction": "Đảo nhẹ để làm ướt",
+    "swirlHelp": "Làm ướt thêm các mảng khô, nhưng cũng xáo trộn lớp bột.",
+    "settleAction": "Giữ yên cho bột ổn định",
+    "settleHelp": "Giữ lớp bột ít xáo trộn; mảng khô sẽ không được xử lý thêm.",
+    "pauseAction": "Đợi nước rút rồi rót tiếp",
+    "pauseHelp": "Hạ mực nước trước khi thêm phần tiếp theo; có thể làm gián đoạn nếu nước đang thấp.",
+    "feedAction": "Tiếp nước bằng dòng nhỏ",
+    "feedHelp": "Duy trì dòng chảy khi nước thấp; có thể làm nước dồn lên nếu đang cao.",
+    "redistributeAction": "Rót nhẹ vào vùng chưa đều",
+    "redistributeHelp": "Ưu tiên làm ướt lại vùng khô; thêm xáo trộn nếu dòng chảy đã đều.",
+    "recenterAction": "Rót bù nhẹ phía lớp bột lệch",
+    "recenterHelp": "Điều chỉnh lớp bột đang nghiêng; có thể xáo trộn không cần thiết nếu đã phẳng.",
+    "finishEvenAction": "Kết thúc bằng dòng rót đều",
+    "finishEvenHelp": "Giữ lớp bột đang phẳng; không sửa được vùng bột còn lệch.",
+    "dryBloomCue": "Bề mặt còn vài mảng bột khô.",
+    "dryBloomDetail": "Nước chưa phủ đều ở bước ủ nở. Quan sát vùng sáng trên lớp bột.",
+    "dryBloomCoach": "Gợi ý lượt đầu: chọn cách giúp làm ướt mảng khô, thay vì chỉ chờ.",
+    "evenBloomCue": "Bột đã ướt đều và đang ổn định.",
+    "evenBloomDetail": "Không còn mảng khô rõ rệt. Một thao tác thêm có thể chỉ làm bột xáo trộn.",
+    "evenBloomCoach": "Gợi ý lượt đầu: quan sát xem có thực sự cần làm thêm gì không.",
+    "highWaterCue": "Mực nước đang cao, chưa kịp rút.",
+    "highWaterDetail": "Nếu thêm ngay, nước sẽ dồn thêm trên lớp bột trong mô hình này.",
+    "highWaterCoach": "Gợi ý lượt đầu: tạo khoảng trống cho nước rút trước khi thêm.",
+    "lowWaterCue": "Mực nước đã xuống thấp.",
+    "lowWaterDetail": "Lớp bột cần được tiếp nước nhẹ để dòng chảy không ngắt quãng trong mô hình.",
+    "lowWaterCoach": "Gợi ý lượt đầu: giữ dòng chảy bằng một lượng nước nhỏ.",
+    "unevenFlowCue": "Dòng chảy chưa đều; vẫn còn vùng bột khô.",
+    "unevenFlowDetail": "Mảng khô ở bước ủ nở chưa được xử lý. Bạn vẫn có thể điều chỉnh ngay bây giờ.",
+    "unevenFlowCoach": "Gợi ý lượt đầu: xử lý vùng chưa ướt trước khi chỉ tăng hoặc giảm nước.",
+    "tiltedBedCue": "Lớp bột đang lệch về một phía.",
+    "tiltedBedDetail": "Kết thúc ngay sẽ giữ nguyên độ lệch. Một điều chỉnh nhẹ có thể giúp lớp bột đều lại.",
+    "tiltedBedCoach": "Gợi ý lượt đầu: ưu tiên điều chỉnh vùng bị lệch.",
+    "levelBedCue": "Lớp bột đang phẳng và ổn định.",
+    "levelBedDetail": "Bạn đã có mặt bột đều. Hãy cân nhắc liệu điều chỉnh thêm có cần thiết không.",
+    "levelBedCoach": "Gợi ý lượt đầu: giữ điều đang ổn định đến khi kết thúc.",
+    "wetGroundsEffect": "Bạn làm ướt được các mảng khô. Ở lượt này, thao tác đảo nhẹ giải quyết đúng điều đang quan sát.",
+    "keptBedEffect": "Bạn giữ nguyên lớp bột đã ướt đều, tránh thêm xáo trộn không cần thiết.",
+    "leftDryEffect": "Mảng khô vẫn còn vì bạn giữ yên. Bước tiếp theo sẽ xuất hiện dòng chảy chưa đều để bạn thử xử lý.",
+    "extraAgitationEffect": "Bột vốn đã ướt đều; đảo thêm gây xáo trộn không cần thiết trong mô hình. Lượt sau thử giữ yên.",
+    "recoveredFlowEffect": "Bạn đã làm ướt lại vùng còn khô. Điều chỉnh này giúp dòng chảy đều hơn, nhưng không xóa tác động của bước trước.",
+    "drainedWaterEffect": "Khoảng nghỉ giúp mực nước hạ xuống trước khi rót tiếp. Bạn tránh dồn thêm nước khi đang cao.",
+    "maintainedWaterEffect": "Dòng nhỏ tiếp nước đúng lúc đang thấp, giữ nhịp pha trong mô hình.",
+    "keptUnevenEffect": "Bạn chưa xử lý vùng khô nên dòng chảy vẫn chưa đều. Thử rót nhẹ vào vùng đó ở lần sau.",
+    "crowdedWaterEffect": "Mực nước đang cao; lựa chọn này không cho đủ khoảng nghỉ để nước rút. Thử đợi nước xuống trước.",
+    "lostWaterEffect": "Nước đã thấp nhưng chưa được tiếp đúng cách; nhịp pha bị ngắt trong mô hình. Thử dòng rót nhỏ đều hơn.",
+    "centeredFinishEffect": "Điều chỉnh nhẹ giúp lớp bột đang lệch đều lại trước khi kết thúc.",
+    "calmFinishEffect": "Bạn giữ được lớp bột phẳng bằng dòng rót đều, không thêm thao tác không cần thiết.",
+    "leftTiltedEffect": "Lớp bột vẫn lệch khi kết thúc. Lượt sau hãy thử điều chỉnh nhẹ phía bị lệch.",
+    "disturbedFinishEffect": "Lớp bột vốn đã phẳng; rót bù làm nó xáo trộn thêm. Lượt sau thử kết thúc đều tay.",
+    "quickPersonal": "Chơi thử với công thức khởi đầu"
   },
-  en: {
-    'First cup':'First cup', 'Save your first brew':'Save your first brew', 'Curious taster':'Curious taster', 'Record three discoveries':'Record three discoveries', 'Bean explorer':'Bean explorer', 'Save brews with all three starter beans':'Save brews with all three starter beans', 'Practice makes progress':'Practice makes progress', 'Save five brews':'Save five brews',
-    startingRecipe:'Use a starting recipe',
-    noCustomScore:'No target score for personal beans', personalBean:'My bean', customHint:'Personal beans have no known reference recipe. Save a baseline, then change one setting and compare your impressions. The starting recipe is an experiment only.',
-    title:'Brew. Taste. Discover.', intro:'A quiet corner to learn pour-over, record impressions, and find your own cup.', language:'Language', guide:'How to play', guideText:'1. Choose a bean and recipe. 2. Pour through three simulated steps. 3. Record impressions or hypotheses. 4. Save, compare, and try again. No real equipment is needed to play.', disclaimer:'Simulation scores follow a game model, not measured coffee quality. Your “sixth sense” is a personal feeling, not a scientific claim.',
-    desk:'Coffee Desk', memory:'Coffee Memory', journey:'Your coffee journey', quests:'Brew quests', level:'Level', nextLevel:'XP to next level', xpText:'Earn 10 XP per saved brew and 5 more per discovery. Progress rewards practice.', bean:'Bean', floral:'Floral · Citrus', caramel:'Caramel · Red fruit', chocolate:'Chocolate · Nuts', dose:'Dose (g)', water:'Water (ml)', temp:'Temperature (°C)', grind:'Grind (higher means coarser)', technique:'Pouring technique', pulse:'Pulse pours', steady:'Steady pour', fast:'Fast pour', techniqueHelp:'In this game model, pulse pours match the reference recipe best. Try different techniques to compare.', ratio:'Coffee : water ratio', reference:'Use reference recipe', start:'Start brewing', configure:'Recipe', pouring:'Pour', tasting:'Taste & reflect', saved:'Saved',
-    bloom:'Bloom', middle:'Second pour', finish:'Final pour', bloomHelp:'Wet the grounds evenly to begin the bloom.', middleHelp:'Add water gently, keeping a consistent stream.', finishHelp:'Add the remaining water and let the coffee drain.', pour:'Pour to', ml:'ml', virtualTime:'This is a simulation, not a real-world brewing timer.', poured:'Poured', cancel:'Cancel brew', cancelConfirm:'Discard this unsaved brew and return to the recipe?', balance:'Simulated balance', feedback:'Your next experiment', raise:'Raise', lower:'Lower', hintEnd:'next time, keeping the other settings unchanged to compare. This hint follows the game model only.', matched:'You matched the reference recipe! Try another bean or change one setting to explore.', techniqueHint:'Try pulse pours with the same recipe and compare.',
-    tasteTitle:'What did you notice?', mode:'Journal mode', hypothesis:'Hypothesis from a virtual brew', real:'Impressions from a real cup', legacy:'Older record · mode unspecified', modeHelp:'Choose “real cup” only if you actually brewed and tasted it. Leave unassessed dimensions blank.', unrated:'Not rated', aroma:'Aroma', acidity:'Acidity', sweetness:'Sweetness', bitterness:'Bitterness', body:'Body', aftertaste:'Aftertaste', ratingsHelp:'The 1–5 scale represents perceived intensity, not quality. All ratings are optional.', mood:'Feeling after this cup · optional', moodHelp:'Your “sixth sense”: personal enjoyment (1–5), separate from the simulation score.', notes:'Tasting notes', discovery:'Discovery / next experiment', notesPlaceholder:'What did you notice?', discoveryPlaceholder:'What one thing would you try next?', save:'Save to Coffee Memory', saveSuccess:'Your brew and progress have been saved.', retry:'Brew again with these settings', newBrew:'Start a new brew', saveError:'Not saved: browser storage is blocked or full. Your draft is still here; retry saving or download it.', draftExport:'Download draft', storageError:'The journal could not be read. Original data is preserved; download a recovery copy. You can still brew, but saving is unavailable.', recovery:'Download original data', export:'Export journal JSON', empty:'No brews yet. Try the reference recipe and save your first cup.', compare:'Compare two sessions', sessionA:'Session A', sessionB:'Session B', measure:'Measure', sameSession:'Choose two different sessions to compare.', personal:'Mean of rated dimensions', noDiscovery:'No discovery recorded', noNotes:'No tasting notes', noTechnique:'Technique not recorded', compareHelp:'Simulation scores and personal impressions are separate. Means from different journal modes are not a quality comparison.',
-    questHelp:'Follow the quests in order. Existing Coffee Memory counts toward progress.', complete:'Complete', locked:'Locked', current:'Your next quest', startQuest:'Start this quest', lastRecipe:'Use my last recipe', allQuests:'All quests complete! Keep exploring your own recipes and discoveries.', exploreTitle:'Meet the beans', exploreDescription:'Save one brew with each of the three starter beans.', discoverTitle:'Notice something new', discoverDescription:'Save three brews with a discovery or next experiment.', experimentTitle:'Change one thing', experimentDescription:'Save consecutive same-bean brews with exactly one recipe setting or pouring technique changed. Add a discovery to the second brew.', steadyTitle:'Find your rhythm', steadyDescription:'Save three brews of one bean with 90+ simulated balance. This is a game recipe goal.', explorePrompt:'An unvisited bean is ready. Brew and save to advance.', discoverPrompt:'Write a discovery after brewing, then save.', experimentPrompt:'Your last recipe is ready. Change one setting or technique, and record a discovery.', steadyPrompt:'Follow the hints to reach 90+ simulated balance across three brews of one bean.'
+  "en": {
+    "First cup": "First cup",
+    "Save your first brew": "Save your first brew",
+    "Curious taster": "Curious taster",
+    "Record three discoveries": "Record three discoveries",
+    "Bean explorer": "Bean explorer",
+    "Save brews with all three starter beans": "Save brews with all three starter beans",
+    "Practice makes progress": "Practice makes progress",
+    "Save five brews": "Save five brews",
+    "startingRecipe": "Use a starting recipe",
+    "noCustomScore": "No target score for personal beans",
+    "personalBean": "My bean",
+    "customHint": "Personal beans have no known reference recipe. Save a baseline, then change one setting and compare your impressions. The starting recipe is an experiment only.",
+    "title": "Brew. Taste. Discover.",
+    "intro": "A quiet corner to learn pour-over, record impressions, and find your own cup.",
+    "language": "Language",
+    "guide": "How to play",
+    "guideText": "Start a practice brew, observe three situations and respond. See the effects, save the round, then try just one change. No real equipment is needed.",
+    "disclaimer": "Simulation scores follow a game model, not measured coffee quality. Your “sixth sense” is a personal feeling, not a scientific claim.",
+    "desk": "Coffee Desk",
+    "memory": "Coffee Memory",
+    "journey": "Your coffee journey",
+    "quests": "Brew quests",
+    "level": "Level",
+    "nextLevel": "XP to next level",
+    "xpText": "Earn 10 XP per saved brew and 5 more per discovery. Progress rewards practice.",
+    "bean": "Bean",
+    "floral": "Floral · Citrus",
+    "caramel": "Caramel · Red fruit",
+    "chocolate": "Chocolate · Nuts",
+    "dose": "Dose (g)",
+    "water": "Water (ml)",
+    "temp": "Temperature (°C)",
+    "grind": "Grind (higher means coarser)",
+    "technique": "Pouring technique",
+    "pulse": "Pulse pours",
+    "steady": "Steady pour",
+    "fast": "Fast pour",
+    "techniqueHelp": "Your starting approach changes the game situation. It does not lose points by itself; observe and adjust during the brew.",
+    "ratio": "Coffee : water ratio",
+    "reference": "Use reference recipe",
+    "start": "Start brewing",
+    "configure": "Recipe",
+    "pouring": "Pour",
+    "tasting": "Taste & reflect",
+    "saved": "Saved",
+    "bloom": "Bloom",
+    "middle": "Second pour",
+    "finish": "Final pour",
+    "bloomHelp": "Wet the grounds evenly to begin the bloom.",
+    "middleHelp": "Add water gently, keeping a consistent stream.",
+    "finishHelp": "Add the remaining water and let the coffee drain.",
+    "pour": "Pour to",
+    "ml": "ml",
+    "virtualTime": "These are simulated situations for practicing observation, not measurements or a real-cup brewing timer.",
+    "poured": "Poured",
+    "cancel": "Cancel brew",
+    "cancelConfirm": "Discard this unsaved brew and return to the recipe?",
+    "balance": "Simulated balance",
+    "feedback": "Your next experiment",
+    "raise": "Raise",
+    "lower": "Lower",
+    "hintEnd": "next time, keeping the other settings unchanged to compare. This hint follows the game model only.",
+    "matched": "You matched the reference recipe! Try another bean or change one setting to explore.",
+    "techniqueHint": "Try pulse pours with the same recipe and compare.",
+    "tasteTitle": "What did you notice?",
+    "mode": "Journal mode",
+    "hypothesis": "Hypothesis from a virtual brew",
+    "real": "Impressions from a real cup",
+    "legacy": "Older record · mode unspecified",
+    "modeHelp": "Choose “real cup” only if you actually brewed and tasted it. Leave unassessed dimensions blank.",
+    "unrated": "Not rated",
+    "aroma": "Aroma",
+    "acidity": "Acidity",
+    "sweetness": "Sweetness",
+    "bitterness": "Bitterness",
+    "body": "Body",
+    "aftertaste": "Aftertaste",
+    "ratingsHelp": "The 1–5 scale represents perceived intensity, not quality. All ratings are optional.",
+    "mood": "Feeling after this cup · optional",
+    "moodHelp": "Your “sixth sense”: personal enjoyment (1–5), separate from the simulation score.",
+    "notes": "Tasting notes",
+    "discovery": "Discovery / next experiment",
+    "notesPlaceholder": "What did you notice?",
+    "discoveryPlaceholder": "What one thing would you try next?",
+    "save": "Save to Coffee Memory",
+    "saveSuccess": "Your brew and progress have been saved.",
+    "retry": "Brew again with these settings",
+    "newBrew": "Start a new brew",
+    "saveError": "Not saved: browser storage is blocked or full. Your draft is still here; retry saving or download it.",
+    "draftExport": "Download draft",
+    "storageError": "The journal could not be read. Original data is preserved; download a recovery copy. You can still brew, but saving is unavailable.",
+    "recovery": "Download original data",
+    "export": "Export journal JSON",
+    "empty": "No brews yet. Try the reference recipe and save your first cup.",
+    "compare": "Compare two sessions",
+    "sessionA": "Session A",
+    "sessionB": "Session B",
+    "measure": "Measure",
+    "sameSession": "Choose two different sessions to compare.",
+    "personal": "Mean of rated dimensions",
+    "noDiscovery": "No discovery recorded",
+    "noNotes": "No tasting notes",
+    "noTechnique": "Technique not recorded",
+    "compareHelp": "Simulation scores and personal impressions are separate. Means from different journal modes are not a quality comparison. Scores from the earlier model and the decision model are not directly equivalent.",
+    "questHelp": "Follow the quests in order. Existing Coffee Memory counts toward progress.",
+    "complete": "Complete",
+    "locked": "Locked",
+    "current": "Your next quest",
+    "startQuest": "Start this quest",
+    "lastRecipe": "Use my last recipe",
+    "allQuests": "All quests complete! Keep exploring your own recipes and discoveries.",
+    "exploreTitle": "Meet the beans",
+    "exploreDescription": "Save one brew with each of the three starter beans.",
+    "discoverTitle": "Notice something new",
+    "discoverDescription": "Save three brews with a discovery or next experiment.",
+    "experimentTitle": "Change one thing",
+    "experimentDescription": "Retry the same bean and situation with one setting, approach or initial decision changed. Respond to the resulting cues and record a discovery.",
+    "steadyTitle": "Find your rhythm",
+    "steadyDescription": "Save three brews of one bean with 90+ simulated balance. This is a game recipe goal.",
+    "explorePrompt": "An unvisited bean is ready. Brew and save to advance.",
+    "discoverPrompt": "Write a discovery after brewing, then save.",
+    "experimentPrompt": "Your last recipe is ready. Change one setting or technique, and record a discovery.",
+    "steadyPrompt": "Follow the hints to reach 90+ simulated balance across three brews of one bean.",
+    "quickPlay": "Try the reference brew",
+    "quickPlayHelp": "For your first round, observe and choose how to handle three situations. Notes and sensory ratings are optional.",
+    "recipeTuning": "Customize the recipe · optional",
+    "observe": "Observe the simulation",
+    "choosePour": "How will you respond?",
+    "previousDecision": "Previous step result",
+    "nextVolume": "After this choice, pour to",
+    "observedWell": "choices matched the situation",
+    "decisionsTitle": "Your choices and their effects",
+    "recipeBase": "Reference recipe points",
+    "decisionImpact": "Pouring impact",
+    "customDecisionOnly": "Pour feedback describes the game situation, not the quality of your real beans",
+    "quickReflect": "Save now, or write one thing you noticed. You do not need to fill out every tasting dimension to finish.",
+    "sensoryDetails": "Detailed impressions · optional",
+    "goalAction": "Next time, try at",
+    "goalParameter": "Change just one setting",
+    "goalTechnique": "Change only the starting approach",
+    "keepRecipe": "Keep the recipe and starting conditions to notice the effect.",
+    "keepOthers": "Keep everything else and observe again.",
+    "tryNextGoal": "Try one change",
+    "goalThisStep": "This is the step you wanted to change. Read the situation before choosing.",
+    "goalSituationChanged": "An earlier choice changed the situation. Observe again rather than following the old suggestion.",
+    "scoreModel": "Score model",
+    "decisionModel": "Recipe + pour decisions · v1",
+    "legacyModel": "Earlier recipe model",
+    "swirlAction": "Gently swirl to wet the grounds",
+    "swirlHelp": "Wet remaining dry patches, but also disturb the bed.",
+    "settleAction": "Let the bed settle",
+    "settleHelp": "Avoid disturbing the bed; dry patches will remain untreated.",
+    "pauseAction": "Let water drain, then pour",
+    "pauseHelp": "Lower the water before adding more; may interrupt the flow if it is already low.",
+    "feedAction": "Add a small, steady stream",
+    "feedHelp": "Maintain flow when water is low; may crowd the bed if it is high.",
+    "redistributeAction": "Gently water the uneven area",
+    "redistributeHelp": "Wet an untreated area; adds disturbance if the flow was already even.",
+    "recenterAction": "Gently correct the tilted bed",
+    "recenterHelp": "Adjust an uneven bed; may disturb an already level surface.",
+    "finishEvenAction": "Finish with an even stream",
+    "finishEvenHelp": "Preserve a level bed; does not correct a tilted area.",
+    "dryBloomCue": "A few patches of grounds are still dry.",
+    "dryBloomDetail": "The bloom has not wet the surface evenly. Look at the lighter patches.",
+    "dryBloomCoach": "First-round hint: choose a way to wet those patches rather than only waiting.",
+    "evenBloomCue": "The grounds are evenly wet and settling.",
+    "evenBloomDetail": "There are no clear dry patches. An extra action might only disturb the bed.",
+    "evenBloomCoach": "First-round hint: decide whether another adjustment is actually needed.",
+    "highWaterCue": "The water is high and has not drained yet.",
+    "highWaterDetail": "Adding more immediately will crowd water above the bed in this model.",
+    "highWaterCoach": "First-round hint: make room for water to drain before adding more.",
+    "lowWaterCue": "The water level has dropped low.",
+    "lowWaterDetail": "The bed needs a gentle addition to keep flow going in this model.",
+    "lowWaterCoach": "First-round hint: maintain the flow with a small addition.",
+    "unevenFlowCue": "Flow is uneven; a dry area remains.",
+    "unevenFlowDetail": "A patch from the bloom was left untreated. You can still respond now.",
+    "unevenFlowCoach": "First-round hint: address the untreated area before simply adding or pausing.",
+    "tiltedBedCue": "The bed is tilted toward one side.",
+    "tiltedBedDetail": "Finishing now will leave that tilt. A gentle correction may level it.",
+    "tiltedBedCoach": "First-round hint: focus on the uneven side.",
+    "levelBedCue": "The bed is level and stable.",
+    "levelBedDetail": "You have an even surface. Consider whether another adjustment is necessary.",
+    "levelBedCoach": "First-round hint: preserve what is already stable through the finish.",
+    "wetGroundsEffect": "You wet the dry patches. This gentle swirl addressed the visible issue in this round.",
+    "keptBedEffect": "You preserved an evenly wet bed without unnecessary disturbance.",
+    "leftDryEffect": "The dry area remains after settling. The next step will show uneven flow for you to respond to.",
+    "extraAgitationEffect": "The bed was already wet. Extra swirling disturbed it unnecessarily in this model; try settling next time.",
+    "recoveredFlowEffect": "You wet the remaining dry area and recovered more even flow. This does not erase the earlier effect.",
+    "drainedWaterEffect": "The pause lowered the water before the next pour, avoiding an extra buildup.",
+    "maintainedWaterEffect": "The small stream added water when it was low and maintained the rhythm in this model.",
+    "keptUnevenEffect": "The dry patch was not addressed, so flow remains uneven. Try watering that area next time.",
+    "crowdedWaterEffect": "Water was high; this choice did not allow enough time for it to drain. Try waiting before adding more.",
+    "lostWaterEffect": "Water was already low and was not replenished appropriately, interrupting the rhythm. Try a small, steady stream.",
+    "centeredFinishEffect": "A gentle correction leveled the tilted bed before finishing.",
+    "calmFinishEffect": "The even stream preserved a level bed without an unnecessary adjustment.",
+    "leftTiltedEffect": "The bed remained tilted at the finish. Try a gentle correction next time.",
+    "disturbedFinishEffect": "The bed was already level; correcting it added unnecessary disturbance. Try an even finish next time.",
+    "quickPersonal": "Try a starting recipe"
   }
 };
 function translate(language, key) { return copy[language]?.[key] ?? copy.en[key] ?? key; }
@@ -289,9 +739,16 @@ const t = name => translate(language, name);
 let journal;
 try { journal = loadJournal(localStorage.getItem(key)); } catch { journal = { sessions: [], writable: false }; }
 let sessions = journal.sessions;
+const isFirstDecisionRound = () => !sessions.some(session=>session.pourRun);
 let recipe = { bean: 'ethiopia', parameters: { ...coffeeBeans[0].target }, technique: 'pulse' };
 let stage = 'configure', pourStep = 0, draft = null, message = '', saveError = false, busy = false;
-const allBeans = () => [...coffeeBeans, ...getPersonalBeans()];
+let pourRun = null, lastPourFeedback = null, retryGoal = null, retrySource = null;
+let showRecipeControls = sessions.length > 0, showSensory = false;
+const allBeans = () => {
+ const beans=[...coffeeBeans,...getPersonalBeans()];
+ for(const session of sessions)if(session.beanProfile&&!beans.some(b=>b.id===session.bean))beans.push({id:session.bean,name:session.beanProfile.name,custom:true,profile:session.beanProfile});
+ return beans;
+};
 const beanFor = id => allBeans().find(b => b.id === id) || {id,name:sessions.find(s=>s.bean===id)?.beanProfile?.name || id,custom:true};
 const scoreLabel = s => s.simulatedScore === null ? t('noCustomScore') : `${s.simulatedScore}/100`;
 const modeLabel = session => t(session.ratingMode === 'real' ? 'real' : session.ratingMode === 'hypothesis' ? 'hypothesis' : 'legacy');
@@ -306,7 +763,7 @@ function download(value, filename, raw = false) {
 function capture() {
   const form = document.querySelector('#brew');
   if (form && stage === 'configure') {
-    recipe = { bean:form.elements.bean.value, parameters:Object.fromEntries(recipeFields.map(k=>[k,Number(form.elements[k].value)])), technique:form.elements.technique.value };
+    recipe = { bean:form.elements.bean.value, parameters:Object.fromEntries(recipeFields.map(k=>[k,Number(form.elements[k].value)])), technique:form.elements.technique.value, ...(recipe.scenario===undefined?{}:{scenario:recipe.scenario}) };
   }
   const taste = document.querySelector('#taste');
   if (taste && draft && stage === 'tasting') {
@@ -320,47 +777,71 @@ function focusOn(selector) {
   const element = document.querySelector(selector);
   element?.focus({preventScroll:true});element?.scrollIntoView({behavior:'smooth',block:'start'});
 }
+function pourGoalText(goal, session) {
+ if(goal.type==='action')return `${t('goalAction')} ${t(goal.stage)}: ${t(goal.action+'Action')}. ${t('keepRecipe')}`;
+ if(goal.type==='parameter')return `${t('goalParameter')} ${t(goal.field)}: ${session.parameters[goal.field]} → ${goal.value}. ${t('keepOthers')}`;
+ return `${t('goalTechnique')} ${t(session.technique||'pulse')} → ${t(goal.value)}. ${t('keepRecipe')}`;
+}
+function renderPourReport(run) {
+ const summary=pourSummary(run);
+ return `<details class="pour-report"><summary>${t('decisionsTitle')} · ${summary.good}/3 ${t('observedWell')}</summary><ol>${summary.decisions.map(d=>`<li><strong>${t(d.stage)} · ${t(d.action+'Action')}</strong><p>${t(d.cue+'Cue')}</p><p class="${d.good?'decision-good':'decision-learn'}">${d.good?'✓':'↗'} ${t(d.effect+'Effect')}</p></li>`).join('')}</ol></details>`;
+}
+function beginPour(quick=false) {
+ capture();
+ if(quick){recipe.parameters={...(beanFor(recipe.bean).target||coffeeBeans[0].target)};recipe.technique='pulse';delete recipe.scenario;retryGoal=null;retrySource=null;}
+ if(!validRecipe(recipe.parameters))return;
+ const scenario=recipe.scenario??(isFirstDecisionRound()?0:Math.floor(Math.random()*3));
+ pourRun=createPourRun(scenario,recipe.technique);lastPourFeedback=null;stage='pouring';pourStep=0;showSensory=false;message='';render();focusOn('#pour-title');
+}
 function renderDesk() {
-  if (stage === 'configure') return `<form id="brew"><label>${t('bean')}<select name="bean">${allBeans().map(b=>`<option value="${b.id}" ${recipe.bean===b.id?'selected':''}>${esc(b.name)}${b.custom?` · ${t('personalBean')}`:` — ${t(b.notes)}`}</option>`).join('')}</select></label><div class="fields">${recipeFields.map(k=>`<label>${t(k)}<input name="${k}" type="number" min="${limits[k][0]}" max="${limits[k][1]}" step="${k==='dose'?'0.1':'1'}" value="${esc(recipe.parameters[k])}" required></label>`).join('')}</div><p id="ratio">${t('ratio')}: 1 : ${(recipe.parameters.water/recipe.parameters.dose).toFixed(1)}</p><label>${t('technique')}<select name="technique">${['pulse','steady','fast'].map(k=>`<option value="${k}" ${recipe.technique===k?'selected':''}>${t(k)}</option>`).join('')}</select></label><p class="help">${t(beanFor(recipe.bean).custom?'customHint':'techniqueHelp')}</p><div class="actions"><button type="submit">${t('start')}</button><button type="button" class="secondary" id="reference">${t(beanFor(recipe.bean).custom?'startingRecipe':'reference')}</button></div></form>`;
+  if (stage === 'configure') return `<form id="brew">${isFirstDecisionRound()?`<div class="quick-play"><button id="quick-play" type="button">${t(beanFor(recipe.bean).custom?'quickPersonal':'quickPlay')}</button><p>${t('quickPlayHelp')}</p></div>`:''}<label>${t('bean')}<select name="bean">${allBeans().map(b=>`<option value="${b.id}" ${recipe.bean===b.id?'selected':''}>${esc(b.name)}${b.custom?` · ${t('personalBean')}`:` — ${t(b.notes)}`}</option>`).join('')}</select></label><details id="recipe-controls" ${showRecipeControls?'open':''}><summary>${t('recipeTuning')}</summary><div class="fields">${recipeFields.map(k=>`<label>${t(k)}<input name="${k}" type="number" min="${limits[k][0]}" max="${limits[k][1]}" step="${k==='dose'?'0.1':'1'}" value="${esc(recipe.parameters[k])}" required></label>`).join('')}</div><p id="ratio">${t('ratio')}: 1 : ${(recipe.parameters.water/recipe.parameters.dose).toFixed(1)}</p><label>${t('technique')}<select name="technique">${['pulse','steady','fast'].map(k=>`<option value="${k}" ${recipe.technique===k?'selected':''}>${t(k)}</option>`).join('')}</select></label><p class="help">${t(beanFor(recipe.bean).custom?'customHint':'techniqueHelp')}</p></details><div class="actions"><button type="submit">${t('start')}</button><button type="button" class="secondary" id="reference">${t(beanFor(recipe.bean).custom?'startingRecipe':'reference')}</button></div></form>`;
   if (stage === 'pouring') {
     const plan=pourPlan(recipe.parameters), names=['bloom','middle','finish'];
-    const poured=pourStep===0?0:plan[pourStep-1];
-    return `<div class="pour-scene"><div class="cup" aria-hidden="true"><div style="height:${poured/recipe.parameters.water*100}%"></div></div><h3 id="pour-title" tabindex="-1">${pourStep+1} / 3 · ${t(names[pourStep])}</h3><p>${t(names[pourStep]+'Help')}</p><p>${t('technique')}: <strong>${t(recipe.technique)}</strong></p><progress max="${recipe.parameters.water}" value="${poured}" aria-label="${t('poured')}"></progress><p>${t('poured')}: ${poured} / ${recipe.parameters.water} ml</p><button id="pour" type="button">${t('pour')} ${plan[pourStep]} ml (+${plan[pourStep]-poured} ml)</button><p class="help">${t('virtualTime')}</p><button id="cancel" class="secondary" type="button">${t('cancel')}</button></div>`;
+    const poured=pourStep===0?0:plan[pourStep-1], situation=pourSituation(pourRun);
+    const feedback=lastPourFeedback?`<div class="decision-feedback ${lastPourFeedback.good?'decision-good':'decision-learn'}" role="status"><strong>${t('previousDecision')} · ${t(lastPourFeedback.stage)}</strong><p>${t(lastPourFeedback.effect+'Effect')}</p></div>`:'';
+    const goalHere=retryGoal?.type==='action'&&retryGoal.stage===situation.stage;
+    return `<div class="pour-scene"><h3 id="pour-title" tabindex="-1">${pourStep+1} / 3 · ${t(names[pourStep])}</h3>${feedback}<div class="dripper" data-cue="${situation.cue}" aria-hidden="true"><div class="grounds"></div><div class="waterline"></div></div><div class="observation"><span class="eyebrow">${t('observe')}</span><p id="pour-cue"><strong>${t(situation.cue+'Cue')}</strong></p><p>${t(situation.cue+'Detail')}</p></div>${isFirstDecisionRound()?`<p class="coach">${t(situation.cue+'Coach')}</p>`:''}${goalHere?`<p class="coach">${t(situation.recommended===retryGoal.action?'goalThisStep':'goalSituationChanged')}</p>`:''}<h4>${t('choosePour')}</h4><div class="pour-choices" role="group" aria-describedby="pour-cue">${situation.choices.map(action=>`<button class="pour-choice" data-action="${action}" type="button"><strong>${t(action+'Action')}</strong><span>${t(action+'Help')}</span></button>`).join('')}</div><div class="pour-volume"><div class="cup" aria-hidden="true"><div style="height:${poured/recipe.parameters.water*100}%"></div></div><div><progress max="${recipe.parameters.water}" value="${poured}" aria-label="${t('poured')}"></progress><p>${t('poured')}: ${poured} / ${recipe.parameters.water} ml</p><p class="help">${t('nextVolume')}: ${plan[pourStep]} ml (+${plan[pourStep]-poured} ml)</p></div></div><p class="help">${t('virtualTime')}</p><button id="cancel" class="secondary" type="button">${t('cancel')}</button></div>`;
   }
   const hint=beanFor(draft.bean).custom?{field:'custom'}:experimentHint(beanFor(draft.bean),draft.parameters,draft.technique);
   const hintText=hint.field==='custom'?t('customHint'):hint.field==='matched'?t('matched'):hint.field==='technique'?t('techniqueHint'):`${t(hint.direction)} ${t(hint.field).toLowerCase()} ${t('hintEnd')}`;
-  const result=`<div class="balance"><span>${t('balance')}</span><strong>${draft.simulatedScore===null?`<small>${t('noCustomScore')}</small>`:`${draft.simulatedScore}<small> / 100</small>`}</strong></div><p class="help">${t('disclaimer')}</p><aside class="experiment"><h3>${t('feedback')}</h3><p>${hintText}</p></aside>`;
-  if (stage === 'saved') return `${result}<div class="success" role="status"><h3 id="saved-title" tabindex="-1">${t('saveSuccess')}</h3><p>+${draft.discovery.trim()?15:10} XP</p></div><div class="actions"><button type="button" id="again">${t('retry')}</button><button type="button" id="new" class="secondary">${t('newBrew')}</button></div>`;
-  return `${result}<form id="taste"><h3 id="taste-title" tabindex="-1">${t('tasteTitle')}</h3><label>${t('mode')}<select name="ratingMode"><option value="hypothesis" ${draft.ratingMode==='hypothesis'?'selected':''}>${t('hypothesis')}</option><option value="real" ${draft.ratingMode==='real'?'selected':''}>${t('real')}</option></select></label><p class="help">${t('modeHelp')}</p><p>${t('ratingsHelp')}</p><div class="fields">${ratingFields()}</div>${ratingSelect('mood',draft.mood)}<p class="help">${t('moodHelp')}</p><label>${t('notes')}<textarea name="notes" maxlength="1000" rows="3" placeholder="${t('notesPlaceholder')}">${esc(draft.notes)}</textarea></label><label>${t('discovery')}<textarea name="discovery" maxlength="1000" rows="2" placeholder="${t('discoveryPlaceholder')}">${esc(draft.discovery)}</textarea></label><p id="save-error" role="alert" tabindex="-1">${saveError?t('saveError'):''}</p><div class="actions"><button type="submit" ${journal.writable?'':'disabled'}>${t('save')}</button><button type="button" id="draft-export" class="secondary">${t('draftExport')}</button><button type="button" id="cancel" class="secondary">${t('cancel')}</button></div></form>`;
+  const goal=draft.pourRun?nextPourGoal(beanFor(draft.bean),draft.parameters,draft.pourRun):null;
+  const goalText=goal?pourGoalText(goal,draft):hintText;
+  const decisionSummary=draft.pourRun?pourSummary(draft.pourRun):null;
+  const result=`<div class="balance" id="brew-outcome" tabindex="-1" role="group"><span>${t('balance')}</span><strong>${draft.simulatedScore===null?`<small>${t('noCustomScore')}</small>`:`${draft.simulatedScore}<small> / 100</small>`}</strong></div>${decisionSummary?`<p class="${decisionSummary.decisions.at(-1).good?'decision-good':'decision-learn'}">${t(decisionSummary.decisions.at(-1).effect+'Effect')}</p><p class="score-ledger">${draft.simulatedScore===null?t('customDecisionOnly'):`${t('recipeBase')}: ${brewScore(beanFor(draft.bean),draft.parameters,'pulse')} · ${t('decisionImpact')}: −${decisionSummary.penalty}`} · ${decisionSummary.good}/3 ${t('observedWell')}</p>${renderPourReport(draft.pourRun)}`:''}<p class="help">${t('disclaimer')}</p><aside class="experiment"><h3>${t('feedback')}</h3><p>${goalText}</p></aside>`;
+  if (stage === 'saved') return `<div class="success" role="status"><h3 id="saved-title" tabindex="-1">${t('saveSuccess')}</h3><p>+${draft.discovery.trim()?15:10} XP</p></div>${result}<div class="actions"><button type="button" id="try-next">${t('tryNextGoal')}</button><button type="button" id="again" class="secondary">${t('retry')}</button><button type="button" id="new" class="secondary">${t('newBrew')}</button></div>`;
+  return `${result}<form id="taste"><h3 id="taste-title" tabindex="-1">${t('tasteTitle')}</h3><label>${t('mode')}<select name="ratingMode"><option value="hypothesis" ${draft.ratingMode==='hypothesis'?'selected':''}>${t('hypothesis')}</option><option value="real" ${draft.ratingMode==='real'?'selected':''}>${t('real')}</option></select></label><p class="help">${t('modeHelp')}</p><p class="help">${t('quickReflect')}</p><details id="sensory-details" ${showSensory?'open':''}><summary>${t('sensoryDetails')}</summary><p>${t('ratingsHelp')}</p><div class="fields">${ratingFields()}</div>${ratingSelect('mood',draft.mood)}<p class="help">${t('moodHelp')}</p></details><label>${t('notes')}<textarea name="notes" maxlength="1000" rows="3" placeholder="${t('notesPlaceholder')}">${esc(draft.notes)}</textarea></label><label>${t('discovery')}<textarea name="discovery" maxlength="1000" rows="2" placeholder="${t('discoveryPlaceholder')}">${esc(draft.discovery)}</textarea></label><p id="save-error" role="alert" tabindex="-1">${saveError?t('saveError'):''}</p><div class="actions"><button type="submit" ${journal.writable?'':'disabled'}>${t('save')}</button><button type="button" id="draft-export" class="secondary">${t('draftExport')}</button><button type="button" id="cancel" class="secondary">${t('cancel')}</button></div></form>`;
 }
 function renderHistory() {
-  return `<section class="panel" id="memory"><div class="section-head"><h2>${t('memory')}</h2><button id="export" class="secondary" type="button">${t('export')}</button></div>${sessions.length>1?`<details class="compare"><summary>${t('compare')}</summary><div class="fields"><label>${t('sessionA')}<select id="compare-a">${sessions.map((s,i)=>`<option value="${i}" ${i===sessions.length-2?'selected':''}>#${i+1} · ${esc(beanFor(s.bean).name)}</option>`).join('')}</select></label><label>${t('sessionB')}<select id="compare-b">${sessions.map((s,i)=>`<option value="${i}" ${i===sessions.length-1?'selected':''}>#${i+1} · ${esc(beanFor(s.bean).name)}</option>`).join('')}</select></label></div><div id="comparison"></div><p class="help">${t('compareHelp')}</p></details>`:''}<div id="history">${sessions.length?sessions.slice().reverse().map((s,i)=>`<article class="session"><strong>${esc(s.beanProfile?.name||beanFor(s.bean).name)} · ${scoreLabel(s)}</strong><small>${esc(new Date(s.date).toLocaleString(language==='vi'?'vi-VN':'en-GB'))} · ${modeLabel(s)}</small><p>${t('personal')}: ${tasteMean(s)}/5</p><p>${esc(s.discovery||t('noDiscovery'))}</p><p>${esc(s.notes||t('noNotes'))}</p><small>${recipeFields.map(k=>`${t(k)}: ${s.parameters[k]}`).join(' · ')} · ${s.technique?t(s.technique):t('noTechnique')}</small>${s.mood?`<p>${t('mood')}: ${esc(s.mood)}/5</p>`:''}<button class="secondary retry" data-session="${sessions.length-1-i}" type="button">${t('retry')}</button></article>`).join(''):`<p>${t('empty')}</p>`}</div></section>`;
+  return `<section class="panel" id="memory"><div class="section-head"><h2>${t('memory')}</h2><button id="export" class="secondary" type="button">${t('export')}</button></div>${sessions.length>1?`<details class="compare"><summary>${t('compare')}</summary><div class="fields"><label>${t('sessionA')}<select id="compare-a">${sessions.map((s,i)=>`<option value="${i}" ${i===sessions.length-2?'selected':''}>#${i+1} · ${esc(beanFor(s.bean).name)}</option>`).join('')}</select></label><label>${t('sessionB')}<select id="compare-b">${sessions.map((s,i)=>`<option value="${i}" ${i===sessions.length-1?'selected':''}>#${i+1} · ${esc(beanFor(s.bean).name)}</option>`).join('')}</select></label></div><div id="comparison"></div><p class="help">${t('compareHelp')}</p></details>`:''}<div id="history">${sessions.length?sessions.slice().reverse().map((s,i)=>`<article class="session"><strong>${esc(s.beanProfile?.name||beanFor(s.bean).name)} · ${scoreLabel(s)}</strong><small>${esc(new Date(s.date).toLocaleString(language==='vi'?'vi-VN':'en-GB'))} · ${modeLabel(s)}</small><p>${t('personal')}: ${tasteMean(s)}/5</p>${s.pourRun?renderPourReport(s.pourRun):''}<p>${esc(s.discovery||t('noDiscovery'))}</p><p>${esc(s.notes||t('noNotes'))}</p><small>${recipeFields.map(k=>`${t(k)}: ${s.parameters[k]}`).join(' · ')} · ${s.technique?t(s.technique):t('noTechnique')}</small>${s.mood?`<p>${t('mood')}: ${esc(s.mood)}/5</p>`:''}<button class="secondary retry" data-session="${sessions.length-1-i}" type="button">${t('retry')}</button></article>`).join(''):`<p>${t('empty')}</p>`}</div></section>`;
 }
 function render() {
   document.documentElement.lang=language;
   const journey=progression(sessions), missions=missionProgress(sessions), active=missions.find(m=>!m.complete&&!m.locked);
-  app.innerHTML=`<main><header><div class="section-head"><span class="eyebrow">THE COFFEE SIX SENSE · PHASE 1</span><label class="language">${t('language')}<select id="language"><option value="vi" ${language==='vi'?'selected':''}>Tiếng Việt</option><option value="en" ${language==='en'?'selected':''}>English</option></select></label></div><h1>${t('title')}</h1><p>${t('intro')}</p><details class="guide" ${sessions.length?'':'open'}><summary>${t('guide')}</summary><p>${t('guideText')}</p></details></header>${!journal.writable?`<div class="warning" role="alert"><p>${t('storageError')}</p>${journal.raw!==undefined?`<button id="recovery" type="button">${t('recovery')}</button>`:''}</div>`:''}<section class="panel" id="desk" aria-labelledby="desk-title"><h2 id="desk-title" tabindex="-1">${t('desk')}</h2><ol class="steps">${['configure','pouring','tasting','saved'].map(k=>`<li ${stage===k?'aria-current="step"':''}>${t(k)}</li>`).join('')}</ol><p id="recipe-message" role="status">${esc(message)}</p><div id="result">${renderDesk()}</div></section><div id="bean-library"></div><section class="panel journey" aria-labelledby="journey-title"><h2 id="journey-title">${t('journey')}</h2><p><strong>${t('level')} ${journey.level}</strong> · ${journey.xp} XP · ${journey.remaining} ${t('nextLevel')}</p><progress max="50" value="${journey.progress}" aria-label="${t('nextLevel')}"></progress><p>${t('xpText')}</p><details><summary>${t('journey')} · ${journey.badges.filter(b=>b.earned).length}/4</summary><ul class="badges">${journey.badges.map(b=>`<li class="${b.earned?'earned':''}"><strong>${b.earned?'✓':'○'} ${t(b.name)}</strong><small>${t(b.hint)}</small></li>`).join('')}</ul></details></section><section class="panel missions"><div class="section-head"><h2>${t('quests')}</h2><span>${missions.filter(m=>m.complete&&!m.locked).length} / 4 ${t('complete')}</span></div><p>${t('questHelp')}</p><ol class="quest-list">${missions.map(m=>`<li class="quest ${m.locked?'locked':m.complete?'complete':'active'}"><div><strong>${t(m.locked?'locked':m.complete?'complete':'current')} · ${t(m.id+'Title')}</strong><p>${t(m.id+'Description')}</p><span>${m.count} / ${m.total}</span></div>${!m.complete&&!m.locked?`<button id="start-quest" type="button">${t(m.id==='experiment'&&sessions.length?'lastRecipe':'startQuest')}</button>`:''}</li>`).join('')}</ol>${!active?`<p id="quest-message">${t('allQuests')}</p>`:''}</section>${renderHistory()}<footer>${t('disclaimer')}</footer></main>`;
+  app.innerHTML=`<main><header><div class="section-head"><span class="eyebrow">THE COFFEE SIX SENSE · PHASE 1</span><label class="language">${t('language')}<select id="language"><option value="vi" ${language==='vi'?'selected':''}>Tiếng Việt</option><option value="en" ${language==='en'?'selected':''}>English</option></select></label></div><h1>${t('title')}</h1><p>${t('intro')}</p><details class="guide"><summary>${t('guide')}</summary><p>${t('guideText')}</p></details></header>${!journal.writable?`<div class="warning" role="alert"><p>${t('storageError')}</p>${journal.raw!==undefined?`<button id="recovery" type="button">${t('recovery')}</button>`:''}</div>`:''}<section class="panel" id="desk" aria-labelledby="desk-title"><h2 id="desk-title" tabindex="-1">${t('desk')}</h2><ol class="steps">${['configure','pouring','tasting','saved'].map(k=>`<li ${stage===k?'aria-current="step"':''}>${t(k)}</li>`).join('')}</ol><p id="recipe-message" role="status">${esc(retryGoal&&retrySource&&(stage==='configure'||stage==='pouring')?pourGoalText(retryGoal,retrySource):message)}</p><div id="result">${renderDesk()}</div></section><div id="bean-library"></div><section class="panel journey" aria-labelledby="journey-title"><h2 id="journey-title">${t('journey')}</h2><p><strong>${t('level')} ${journey.level}</strong> · ${journey.xp} XP · ${journey.remaining} ${t('nextLevel')}</p><progress max="50" value="${journey.progress}" aria-label="${t('nextLevel')}"></progress><p>${t('xpText')}</p><details><summary>${t('journey')} · ${journey.badges.filter(b=>b.earned).length}/4</summary><ul class="badges">${journey.badges.map(b=>`<li class="${b.earned?'earned':''}"><strong>${b.earned?'✓':'○'} ${t(b.name)}</strong><small>${t(b.hint)}</small></li>`).join('')}</ul></details></section><section class="panel missions"><div class="section-head"><h2>${t('quests')}</h2><span>${missions.filter(m=>m.complete&&!m.locked).length} / 4 ${t('complete')}</span></div><p>${t('questHelp')}</p><ol class="quest-list">${missions.map(m=>`<li class="quest ${m.locked?'locked':m.complete?'complete':'active'}"><div><strong>${t(m.locked?'locked':m.complete?'complete':'current')} · ${t(m.id+'Title')}</strong><p>${t(m.id+'Description')}</p><span>${m.count} / ${m.total}</span></div>${!m.complete&&!m.locked?`<button id="start-quest" type="button">${t(m.id==='experiment'&&sessions.length?'lastRecipe':'startQuest')}</button>`:''}</li>`).join('')}</ol>${!active?`<p id="quest-message">${t('allQuests')}</p>`:''}</section>${renderHistory()}<footer>${t('disclaimer')}</footer></main>`;
   bind(active);
   renderBeanLibrary({language,onChange:()=>{capture();render();},onBrew:id=>changeRecipe({bean:id,parameters:{...coffeeBeans[0].target},technique:'pulse'},t('customHint'))});
 }
 function changeRecipe(session, prompt='') {
   if ((stage==='pouring'||stage==='tasting')&&!confirm(t('cancelConfirm'))) return;
-  recipe=session?{bean:session.bean,parameters:{...session.parameters},technique:session.technique||'pulse'}:recipe;
-  stage='configure';draft=null;pourStep=0;message=prompt;saveError=false;render();focusOn('#desk-title');
+  recipe=session?{bean:session.bean,parameters:{...session.parameters},technique:session.technique||'pulse',...(session.pourRun?{scenario:session.pourRun.scenario}:{})}:recipe;
+  retryGoal=null;retrySource=null;pourRun=null;lastPourFeedback=null;
+  stage='configure';draft=null;pourStep=0;showRecipeControls=true;message=prompt;saveError=false;render();focusOn('#desk-title');
 }
 function bind(activeMission) {
   document.querySelector('#language').onchange=e=>{capture();language=e.target.value;try{localStorage.setItem('c6s.language',language);}catch{}render();document.querySelector('#language').focus();};
   document.querySelector('#brew')?.addEventListener('input',()=>{capture();document.querySelector('#ratio').textContent=`${t('ratio')}: 1 : ${validRecipe(recipe.parameters)?(recipe.parameters.water/recipe.parameters.dose).toFixed(1):'—'}`;});
-  document.querySelector('#brew')?.addEventListener('submit',e=>{e.preventDefault();capture();if(!validRecipe(recipe.parameters))return;stage='pouring';pourStep=0;message='';render();focusOn('#pour-title');});
+  document.querySelector('#brew')?.addEventListener('submit',e=>{e.preventDefault();beginPour();});
+  document.querySelector('#quick-play')?.addEventListener('click',()=>beginPour(true));
+  document.querySelector('#recipe-controls')?.addEventListener('toggle',e=>{showRecipeControls=e.currentTarget.open;});
+  document.querySelector('#sensory-details')?.addEventListener('toggle',e=>{showSensory=e.currentTarget.open;});
   document.querySelector('#brew [name=bean]')?.addEventListener('change',()=>{capture();render();document.querySelector('#brew [name=bean]').focus();});
   document.querySelector('#reference')?.addEventListener('click',()=>{capture();recipe.parameters={...(beanFor(recipe.bean).target||coffeeBeans[0].target)};recipe.technique='pulse';render();focusOn('#desk-title');});
-  document.querySelector('#pour')?.addEventListener('click',e=>{
-    if(busy)return;busy=true;e.currentTarget.disabled=true;
-    // Each click advances one explicit simulated pour; no background timer can skip a step.
-    pourStep++;
-    if(pourStep===3){stage='tasting';draft={id:globalThis.crypto?.randomUUID?.()||`brew-${Date.now()}-${Math.random().toString(36).slice(2)}`,date:new Date().toISOString(),bean:recipe.bean,parameters:{...recipe.parameters},technique:recipe.technique,...(beanFor(recipe.bean).custom?{beanProfile:{...beanFor(recipe.bean).profile,name:beanFor(recipe.bean).name},simulatedScore:null}:{simulatedScore:brewScore(beanFor(recipe.bean),recipe.parameters,recipe.technique)}),ratingMode:'hypothesis',taste:{},mood:null,notes:'',discovery:''};}
-    render();focusOn(stage==='tasting'?'#taste-title':'#pour-title');busy=false;
-  });
+  document.querySelectorAll('.pour-choice').forEach(button=>button.addEventListener('click',event=>{
+    if(busy||stage!=='pouring'||event.detail>1||!pourSituation(pourRun).choices.includes(button.dataset.action))return;busy=true;
+    const decision=choosePourAction(pourRun,button.dataset.action);pourRun=decision.run;lastPourFeedback=decision.feedback;pourStep=pourRun.actions.length;
+    if(pourStep===3){stage='tasting';draft={id:globalThis.crypto?.randomUUID?.()||`brew-${Date.now()}-${Math.random().toString(36).slice(2)}`,date:new Date().toISOString(),bean:recipe.bean,parameters:{...recipe.parameters},technique:recipe.technique,pourRun,...(beanFor(recipe.bean).custom?{beanProfile:{...beanFor(recipe.bean).profile,name:beanFor(recipe.bean).name}}:{}),simulatedScore:gameplayScore(beanFor(recipe.bean),recipe.parameters,pourRun),ratingMode:'hypothesis',taste:{},mood:null,notes:'',discovery:''};}
+    render();focusOn(stage==='tasting'?'#brew-outcome':'#pour-title');busy=false;
+  }));
   document.querySelector('#cancel')?.addEventListener('click',()=>changeRecipe(null));
   document.querySelector('#taste')?.addEventListener('submit',e=>{
     e.preventDefault();capture();if(!journal.writable||busy)return;busy=true;
@@ -370,14 +851,21 @@ function bind(activeMission) {
     busy=false;render();focusOn(saveError?'#save-error':'#saved-title');
   });
   document.querySelector('#draft-export')?.addEventListener('click',()=>{capture();download([draft],'coffee-memory-draft.json');});
+  document.querySelector('#try-next')?.addEventListener('click',()=>{
+    const previous=draft,goal=nextPourGoal(beanFor(previous.bean),previous.parameters,previous.pourRun);
+    changeRecipe(previous,pourGoalText(goal,previous));retryGoal=goal;retrySource=previous;
+    if(goal.type==='parameter')recipe.parameters[goal.field]=goal.value;
+    if(goal.type==='technique')recipe.technique=goal.value;
+    render();focusOn('#desk-title');
+  });
   document.querySelector('#again')?.addEventListener('click',()=>changeRecipe(draft));
   document.querySelector('#new')?.addEventListener('click',()=>changeRecipe({bean:'ethiopia',parameters:{...coffeeBeans[0].target},technique:'pulse'}));
   document.querySelectorAll('.retry').forEach(button=>button.onclick=()=>changeRecipe(sessions[Number(button.dataset.session)]));
   document.querySelector('#start-quest')?.addEventListener('click',()=>{
     if((stage==='pouring'||stage==='tasting')&&!confirm(t('cancelConfirm')))return;
-    capture();stage='configure';draft=null;saveError=false;
-    if(activeMission.id==='experiment'&&sessions.length){const last=sessions.at(-1);recipe={bean:last.bean,parameters:{...last.parameters},technique:last.technique||'pulse'};}
-    if(activeMission.id==='explore'&&activeMission.bean){recipe.bean=activeMission.bean;recipe.parameters={...(beanFor(recipe.bean).target||coffeeBeans[0].target)};}
+    capture();stage='configure';draft=null;saveError=false;retryGoal=null;retrySource=null;pourRun=null;lastPourFeedback=null;showRecipeControls=true;
+    if(activeMission.id==='experiment'&&sessions.length){const last=sessions.at(-1);recipe={bean:last.bean,parameters:{...last.parameters},technique:last.technique||'pulse',...(last.pourRun?{scenario:last.pourRun.scenario}:{})};}
+    if(activeMission.id==='explore'&&activeMission.bean){recipe.bean=activeMission.bean;delete recipe.scenario;recipe.parameters={...(beanFor(recipe.bean).target||coffeeBeans[0].target)};}
     message=t(activeMission.id+'Prompt');render();focusOn('#desk-title');
   });
   document.querySelector('#export').onclick=()=>download(sessions,'coffee-memory.json');
@@ -386,7 +874,7 @@ function bind(activeMission) {
   if(ca&&cb){
     const update=()=>{
       const a=sessions[Number(ca.value)],b=sessions[Number(cb.value)];
-      const rows=[...recipeFields.map(k=>[t(k),a.parameters[k],b.parameters[k]]),[t('technique'),a.technique?t(a.technique):t('noTechnique'),b.technique?t(b.technique):t('noTechnique')],[t('balance'),scoreLabel(a),scoreLabel(b)],[t('mode'),modeLabel(a),modeLabel(b)],[t('personal'),tasteMean(a),tasteMean(b)]];
+      const rows=[...recipeFields.map(k=>[t(k),a.parameters[k],b.parameters[k]]),[t('technique'),a.technique?t(a.technique):t('noTechnique'),b.technique?t(b.technique):t('noTechnique')],[t('balance'),scoreLabel(a),scoreLabel(b)],[t('mode'),modeLabel(a),modeLabel(b)],[t('personal'),tasteMean(a),tasteMean(b)],[t('scoreModel'),t(a.pourRun?'decisionModel':'legacyModel'),t(b.pourRun?'decisionModel':'legacyModel')]];
       document.querySelector('#comparison').innerHTML=ca.value===cb.value?`<p>${t('sameSession')}</p>`:`<div class="table-wrap"><table><thead><tr><th>${t('measure')}</th><th>${t('sessionA')}</th><th>${t('sessionB')}</th></tr></thead><tbody>${rows.map(row=>`<tr>${row.map((cell,i)=>`<${i?'td':'th'}>${esc(cell)}</${i?'td':'th'}>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     };ca.onchange=update;cb.onchange=update;update();
   }
