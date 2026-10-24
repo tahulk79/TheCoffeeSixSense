@@ -1,8 +1,9 @@
+import {recipeReference} from './recipe-references.js';
 import {firstPourAxes,firstPourLimits,firstPourBeans,validFirstRecipe} from './first-pour-model.js';
 export const firstExperimentFields=['grind','temp','ratio','time'];
 export function firstRecipeChanges(before,after){
  if(!validFirstRecipe(before)||!validFirstRecipe(after))throw Error('Invalid comparison recipe');
- return ['bean',...Object.keys(firstPourLimits)].filter(k=>before[k]!==after[k]);
+ return ['bean',...Object.keys(firstPourLimits),'referenceId'].filter(k=>before[k]!==after[k]);
 }
 export function firstExperimentPair(records,entry){
  if(!entry?.baselineId)return {status:'unlinked'};
@@ -16,7 +17,7 @@ export function firstRadarPoints(axes){
 }
 export function firstMemoryMatches(entry,query){
  const fold=text=>String(text??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase();
- const text=fold([entry.recipe.bean,firstPourBeans.find(b=>b.id===entry.recipe.bean)?.name,entry.feedback.notes,entry.feedback.nextChange].join(' '));
+ const text=fold([entry.recipe.bean,firstPourBeans.find(b=>b.id===entry.recipe.bean)?.name,entry.feedback.notes,entry.feedback.nextChange,recipeReference(entry.recipe.referenceId)?.author,recipeReference(entry.recipe.referenceId)?.title].join(' '));
  return fold(query).trim().split(/\s+/).every(word=>text.includes(word));
 }
 export function firstSensoryRadar(language,series){
