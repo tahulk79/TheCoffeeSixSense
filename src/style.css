@@ -60,3 +60,5 @@ body{background:radial-gradient(ellipse at 12% 0,#3b3027 0,transparent 48%),radi
 @media(prefers-reduced-motion:reduce){.brew-apparatus .brew-gooseneck,.brew-server-liquid>#fp-cup-fill,.brew-server-liquid>.brew-coffee-fill{transition:none}.brew-apparatus .fp-stream,.brew-apparatus .pour-stream,.brew-apparatus .fp-coffee-stream i,.brew-apparatus .drawdown-stream,.is-pouring .brew-water-surface{animation:none}.brew-apparatus .fp-coffee-stream i{top:10px}.brew-apparatus .fp-coffee-stream i:nth-child(2){top:3px}.brew-apparatus .fp-coffee-stream i:nth-child(3){top:19px}}
 /* A near-60° cone: its mouth is narrower than the server body, not a shallow bowl. */
 .brew-apparatus .brew-v60{left:30%;top:32.558%;width:38.889%;height:30.643%}.brew-apparatus .fp-stream,.brew-apparatus .pour-stream{height:16.28%}.live-filter .brew-cone-shell{fill-opacity:.7}
+/* Liquid is inset from the glass wall and scaled to the server's ~600 ml capacity. */
+.brew-server-liquid>#fp-cup-fill,.brew-server-liquid>.brew-coffee-fill{bottom:9.9%;border-top-width:1px}

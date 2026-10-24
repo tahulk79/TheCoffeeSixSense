@@ -1,3 +1,12 @@
+// Visual capacity only: the server represents ~600 ml, independently of recipe size.
+export function serverFillPercent(ml){
+ const volume=Math.max(0,Math.min(600,Number(ml)||0));
+ const marks=[[0,0],[100,8],[200,17],[300,28],[400,40],[500,53],[600,62]];
+ const upper=marks.findIndex(([v])=>v>=volume);
+ if(upper<=0)return 0;
+ const [a,ha]=marks[upper-1],[b,hb]=marks[upper];
+ return ha+(hb-ha)*(volume-a)/(b-a);
+}
 // Original code-drawn utensils shared by both games. No images or graphics engine.
 export function brewEquipment(mode='first'){
  const fp=mode==='first',p=fp?'fp':'counter',kettle=fp?'fp-pot':'kettle',filter=fp?'fp-filter':'live-filter',server=fp?'fp-cup':'live-cup';
@@ -15,11 +24,11 @@ export function brewEquipment(mode='first'){
  <ellipse cx="84" cy="20" rx="69" ry="13" fill="#7c6750" stroke="#f4ead2" stroke-width="3"/><ellipse cx="84" cy="21" rx="61" ry="9" fill="#dfd0ac"/><ellipse class="brew-grounds-surface" cx="84" cy="23" rx="48" ry="6" fill="#63402a"/><ellipse class="brew-water-surface" cx="84" cy="22" rx="47" ry="5" fill="#dca45b55"/><path d="M77 112v5h15v-5" fill="#d7c8a8"/><ellipse cx="84" cy="120" rx="34" ry="5" fill="#d1c3a5" stroke="#eee1c1" stroke-width="2"/>
  </g></svg>${fp?'':'<span class="spill-line"></span>'}</div>
  <div class="${fp?'fp-coffee-stream':'drawdown-stream'}">${fp?'<i></i><i></i><i></i>':''}</div>${fp?'':'<div class="overflow-stream"></div>'}
- <div class="${server} brew-server"><div class="brew-server-liquid"><div ${fp?'id="fp-cup-fill"':'class="brew-coffee-fill"'}></div></div><svg viewBox="0 0 170 142" focusable="false">
+ <div class="${server} brew-server"><div class="brew-server-liquid" style="clip-path:url(#${p}-server-interior)"><div ${fp?'id="fp-cup-fill"':'class="brew-coffee-fill"'}></div></div><svg viewBox="0 0 170 142" focusable="false"><defs><clipPath id="${p}-server-interior" clipPathUnits="objectBoundingBox"><path d="M.341 .282H.588C.588 .401 .647 .535 .712 .676L.765 .789Q.806 .894 .688 .901H.235Q.129 .887 .171 .775L.247 .592Q.341 .423 .341 .282Z"/></clipPath></defs>
  <path d="M124 35q38-12 36 23-2 31-34 30" fill="none" stroke="#b5cfc2" stroke-opacity=".85" stroke-width="8"/><path d="M127 38q29-7 27 20-1 22-26 24" fill="none" stroke="#e2eade" stroke-opacity=".7" stroke-width="2"/>
  <path d="m61 8-22 2 16 14v15q-1 15-16 36l-15 29q-9 23 14 27h81q24-3 14-27l-17-30q-13-21-13-35V20l6-8-18-4z" fill="#b6d5c20c" stroke="#c6dfd1" stroke-width="2.5" stroke-linejoin="round"/>
  <ellipse cx="78" cy="11" rx="29" ry="5" fill="#acc8b614" stroke="#d2e3d3" stroke-width="2"/><path d="M56 33h47" stroke="#302c23" stroke-width="9"/><path d="M57 31h45" stroke="#81734e" stroke-width="2"/>
  <path d="M55 55q-5 20-18 42-6 11-4 20M44 123h63" fill="none" stroke="#ecf4e2" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/>
- <g stroke="#c4d6c4" stroke-opacity=".7"><path d="M96 69h11M98 85h17M101 101h22"/></g><g fill="#e0e5cd" font-family="sans-serif" font-size="6" opacity=".8"><text x="83" y="71">300</text><text x="85" y="87">200</text><text x="88" y="103">100</text></g>
+ <g stroke="#c4d6c4" stroke-opacity=".7"><path d="M93 88h20M96 104h25M98 117h29"/></g><g fill="#e0e5cd" font-family="sans-serif" font-size="6" opacity=".8"><text x="79" y="90">300</text><text x="82" y="106">200</text><text x="84" y="119">100</text></g>
  </svg></div>`;
 }
