@@ -4,6 +4,18 @@
 
 A web-first specialty coffee learning game where players practice brewing, evaluate sensory qualities, compare past sessions, and record personal discoveries. **Discover Your Sixth Taste · From Coffee to Consciousness.** “Sixth Taste” is a metaphor for personal discovery, not a scientifically established sixth basic taste. The six sensory attributes are separate descriptors.
 
+## Daily café discoveries — v0.5.1
+
+**What’s at the café today?** rotates a bean, tool or recipe introduction each
+local day, with original owner dialogue, one fact and a connected practice action.
+The first edition has 12 entries and explicitly repeats after the cycle. Browse
+all entries anytime and save favorites in the local café notebook; no streaks,
+penalties, accounts or backend.
+
+Four new bean profiles are illustrative and have **no invented benchmark score**.
+Tool/recipe trials preserve the selected bean, and active cups or unsaved notes
+are protected before switching. [Content, limits and verification](docs/DAILY-DISCOVERY.md).
+
 ## v0.5 — Your First Shift
 
 Choose **The First Pour · v0.5 → Play your first shift**. Mai guides a short

@@ -5,14 +5,20 @@ export const firstPourAxes=['aroma','acidity','sweetness','bitterness','body','a
 export const firstPourBeans=[
  {id:'ethiopia',name:'Ethiopia · Washed',target:{dose:20,ratio:15,grind:18,temp:94,time:180}},
  {id:'colombia',name:'Colombia · Honey',target:{dose:20,ratio:15,grind:20,temp:93,time:180}},
- {id:'brazil',name:'Brazil · Natural',target:{dose:20,ratio:15,grind:22,temp:92,time:180}}
+ {id:'brazil',name:'Brazil · Natural',target:{dose:20,ratio:15,grind:22,temp:92,time:180}},
+ {id:'vietnam-washed',name:'Vietnam Arabica · Washed'},
+ {id:'guatemala-washed',name:'Guatemala · Washed'},
+ {id:'costa-rica-honey',name:'Costa Rica · Honey'},
+ {id:'ethiopia-natural',name:'Ethiopia · Natural'}
 ];
+export function firstPourPreset(bean='ethiopia'){const entry=firstPourBeans.find(b=>b.id===bean);if(!entry)throw Error('Unknown bean');return {bean,...(entry.target||{dose:20,ratio:15,grind:20,temp:93,time:180})};}
 export const firstPourLimits={dose:[12,30],ratio:[12,20],grind:[1,40],temp:[80,100],time:[90,360]};
 export function validFirstRecipe(recipe){return Boolean(firstPourBeans.some(b=>b.id===recipe?.bean)&&Object.entries(firstPourLimits).every(([k,[min,max]])=>Number.isFinite(recipe[k])&&recipe[k]>=min&&recipe[k]<=max));}
 export function firstPourPlan(recipe){if(!validFirstRecipe(recipe))throw Error('Invalid first-pour recipe');const total=Math.round(recipe.dose*recipe.ratio);return [Math.round(total*.2),Math.round(total*.7),total];}
 export function firstPourScore(recipe){
  if(!validFirstRecipe(recipe))throw Error('Invalid first-pour recipe');
  const target=firstPourBeans.find(b=>b.id===recipe.bean).target;
+ if(!target)return {modelVersion:firstPourVersion,score:null,largest:null,matched:false};
  const weights={grind:3,temp:4,ratio:6,time:.15};
  const deviations=Object.entries(weights).map(([field,weight])=>({field,delta:recipe[field]-target[field],penalty:Math.abs(recipe[field]-target[field])*weight}));
  return {modelVersion:firstPourVersion,score:Math.max(0,Math.round(100-deviations.reduce((s,d)=>s+d.penalty,0))),largest:deviations.reduce((a,b)=>a.penalty>=b.penalty?a:b).field,matched:deviations.every(d=>d.penalty===0)};
