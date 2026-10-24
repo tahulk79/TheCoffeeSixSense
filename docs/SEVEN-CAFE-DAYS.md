@@ -1,19 +1,19 @@
 # Seven café days — pilot chapter (v0.6.0)
 
 A player arrives as a café visitor, rather than being required to run a counter.
-Seven authored visits follow Linh (sketching before moving away), Nam (learning
-to brew at home), An (between jobs), and the owner. Sketch, rainy photograph,
+Seven authored visits follow Linh (sketching before moving away), Luca (learning
+to brew at home), Camila (between jobs), and the owner. Sketch, rainy photograph,
 blank note, brewing notebook, postcard and plant connect the scenes.
 
 | Visit | Story | Owner's discovery | Possible invitation |
 | --- | --- | --- | --- |
 | 1 | Linh starts sketching a window seat | Vietnam Arabica Washed | Conversation / photo corner |
-| 2 | Nam stops after a night shift | V60 | Conversation / brewing |
+| 2 | Luca stops after a night shift | V60 | Conversation / brewing |
 | 3 | Linh photographs a rainy afternoon | 12 g / 180 ml | Photo corner / brewing |
-| 4 | An takes a quiet break after leaving work | Guatemala Washed | Conversation / photo corner |
-| 5 | Nam returns with a notebook | Scale and recording units | Conversation / brewing |
+| 4 | Camila takes a quiet break after leaving work | Guatemala Washed | Conversation / photo corner |
+| 5 | Luca returns with a notebook | Scale and recording units | Conversation / brewing |
 | 6 | Linh prepares to move | 15 g / 240 ml | Photo corner / brewing |
-| 7 | An, Nam and Linh's postcard share the table | Honey processing | Conversation / photo corner |
+| 7 | Camila, Luca and Linh's postcard share the table | Honey processing | Conversation / photo corner |
 
 ## Interaction and progression
 
@@ -70,3 +70,11 @@ This is functional/visual verification, not evidence of human enjoyment or retur
 rates. Safari and actual mobile hardware were not verified. A useful next playtest
 asks which guest players remember, whether they voluntarily start a second visit,
 and whether they return to learn what happens to that guest.
+
+## Cast revision · v0.6.1
+
+Three fictional individuals from different continents: Linh Nguyễn (Hội An, Vietnam / Asia), Luca Rossi (Bologna, Italy / Europe), and Camila Santos (Belo Horizonte, Brazil / South America). Each has a bilingual biography, personal interests and family coffee habits woven into scenes and replies. These are individual memories, not universal national customs. Guest details show country/continent and an optional biography; no flag, accent parody or nationality-based taste/scoring rule.
+
+The seven visit indices, invitation modes, reply indices and local storage schema are unchanged. Existing chapter progress, choices, photos and mementos remain usable, with revised story text displayed on return.
+
+Cast revision verification: the same 84 automated checks and both builds pass. `scripts/smoke-seven-guests.mjs` covers visits 1–5 and 7 at 320/1440 px, profile names and countries/continents in VI/EN, existing version-1 save envelopes, photo compositions and finale. Character captures: [Linh](review/seven-visits/320-linh.png), [Luca](review/seven-visits/320-luca.png), [Camila](review/seven-visits/320-camila.png). The original pouring implementation is unchanged apart from the displayed release version.
