@@ -2,7 +2,27 @@
 
 **Brew → Taste → Compare → Discover → Improve**
 
-A web-first specialty coffee learning game where players practice brewing, evaluate sensory qualities, compare past sessions, and record personal discoveries. The “sixth sense” is the player's subjective emotional uplift, represented as a game metaphor rather than a scientific claim.
+A web-first specialty coffee learning game where players practice brewing, evaluate sensory qualities, compare past sessions, and record personal discoveries. **Discover Your Sixth Taste · From Coffee to Consciousness.** “Sixth Taste” is a metaphor for personal discovery, not a scientifically established sixth basic taste. The six sensory attributes are separate descriptors.
+
+## v0.3 — The First Pour
+
+Open **The First Pour · three stages** at the counter. Configure a fictional
+Ethiopia Washed, Colombia Honey or Brazil Natural lot, dose, ratio, grind,
+temperature and recipe time. Hold, use keyboard Space/Enter, or tap the pour
+toggle through bloom → main pour → final pour. Each stage stops at its water
+limit and waits for an explicit transition. Restart keeps the recipe.
+
+Save the resulting game recipe, optional six-axis subjective intensities,
+enjoyment, notes and next change in a separate Coffee Memory store. Compare two
+entries, export JSON and delete individual records with confirmation. Game
+scores, reflections, self-reported real tastings and the existing actual-brew
+measurement collector remain distinct. Data is local to this browser and may
+be lost when browser data is cleared; export backups. No accounts, VPS or new
+network service.
+
+[Integration report and acceptance evidence](docs/V0.3-INTEGRATION.md) ·
+[Supplied handoff](docs/design/v0.3/C6S_CODEX_HANDOFF_v0.3.md) ·
+[Master GDD](docs/design/v0.3/TheCoffeeSixSense_Game_Design_Master_GDD.md).
 
 ## MVP gameplay
 1. **Brew:** choose one of three starter beans and adjust dose, grind, water, temperature and pouring technique.
