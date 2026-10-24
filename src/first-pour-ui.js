@@ -1,4 +1,4 @@
-import { brewEquipment } from './brew-equipment.js';
+import { brewEquipment, serverFillPercent } from './brew-equipment.js';
 import {firstPourKey,firstPourAxes,firstPourBeans,firstPourLimits,validFirstRecipe,firstPourPlan,firstPourScore,startFirstPour,tickFirstPour,advanceFirstPour,loadFirstMemories,putFirstMemory,compareFirstMemories,firstPourDrawdown} from './first-pour-model.js';
 import {cafeFrameDelta} from './counter-progress.js';
 export function mountFirstPour(initialLanguage='vi'){
@@ -46,7 +46,7 @@ export function mountFirstPour(initialLanguage='vi'){
   if(screen!=='pour'||!state)return;
   const total=state.plan[2],pool=Math.max(0,state.water-collected),station=root.querySelector('.fp-station');
   root.querySelector('#fp-water').textContent=String(Math.round(state.water));root.querySelector('#fp-clock').textContent=clock(state.seconds);root.querySelector('#fp-progress').value=state.water;
-  const fill=collected/total*85;
+  const fill=serverFillPercent(collected);
   root.querySelector('#fp-cup-fill').style.height=`${fill}%`;
   station.style.setProperty('--cup-fill',`${fill}%`);station.style.setProperty('--pool-height',`${Math.min(30,pool/total*100)}px`);
   root.querySelector('#fp-bloom').style.transform=`scale(${1+state.water/total*.25})`;
