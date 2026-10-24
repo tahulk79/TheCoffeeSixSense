@@ -110,3 +110,5 @@ The active game is deployed on **GitHub Pages**. Legacy optional VPS preparation
 ## Seven café days · v0.6.0
 
 An optional seven-visit story chapter introduces returning guests, branching conversations, a code-drawn photo corner and invitations to the brew station. Continue at your own pace, skip any activity and revisit mementos on the café board. Progress is local to this browser; the finite chapter has an explicit ending. [Story, storage limits and checks](docs/SEVEN-CAFE-DAYS.md).
+
+The v0.6.1 cast revision gives Linh Nguyễn (Vietnam / Asia), Luca Rossi (Italy / Europe) and Camila Santos (Brazil / South America) individual interests, coffee memories and optional bilingual profiles, while preserving existing chapter progress.
