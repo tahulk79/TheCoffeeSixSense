@@ -5,7 +5,7 @@ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['-
 const html=await fs.readFile(new URL('../docs/index.html',import.meta.url),'utf8');
 const origin='https://coffee.test/TheCoffeeSixSense/';
 async function open(page){await page.route(origin,r=>r.fulfill({body:html,contentType:'text/html'}));await page.goto(origin);await page.locator('#open-first-pour').click();}
-async function complete(page){for(let i=0;i<3;i++){if(page.viewportSize().width<1000)await page.locator('#fp-toggle').tap();else await page.locator('#fp-toggle').click();await page.clock.runFor(7000);if(i<2){assert.equal(await page.locator('#fp-hold').isDisabled(),true);await page.locator('#fp-next').click();}}await page.locator('#fp-save').waitFor();}
+async function complete(page){for(let i=0;i<3;i++){if(page.viewportSize().width<1000)await page.locator('#fp-toggle').tap();else await page.locator('#fp-toggle').click();await page.clock.runFor(i===2?12000:7000);if(i<2){assert.equal(await page.locator('#fp-hold').isDisabled(),true);await page.locator('#fp-next').click();}}await page.locator('#fp-save').waitFor();}
 for(const width of [320,390,820,1440]){
  const page=await browser.newPage({viewport:{width,height:1024},hasTouch:width<1000});const errors=[];page.on('pageerror',e=>errors.push(e.message));await open(page);
  const legacy=await page.evaluate(()=>Object.fromEntries(['c6s.sessions.v1','c6s.counter.v1','c6s.cafe.v1','c6s.real-brews.v1','tcs6-memory-v1'].map(k=>[k,localStorage.getItem(k)])));

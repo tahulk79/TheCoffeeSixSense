@@ -39,3 +39,9 @@ export function loadFirstMemories(raw){
 }
 export function putFirstMemory(records,entry){if(!validFirstMemory(entry))throw Error('Invalid first-pour memory');return [...records.filter(r=>r.id!==entry.id),entry];}
 export function compareFirstMemories(a,b){return ['bean',...Object.keys(firstPourLimits)].filter(k=>a.recipe[k]!==b.recipe[k]);}
+
+// Presentation-only drawdown, independent of the recipe score and saved measurements.
+export function firstPourDrawdown(collected,poured,total,dt){
+ if(![collected,poured,total,dt].every(Number.isFinite)||total<=0||collected<0||poured<collected||poured>total||dt<0||dt>.1)throw Error('Invalid visual drawdown');
+ return Math.min(poured,collected+total/18*dt);
+}
