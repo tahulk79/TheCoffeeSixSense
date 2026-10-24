@@ -116,3 +116,7 @@ The v0.6.1 cast revision gives Linh Nguyễn (Vietnam / Asia), Luca Rossi (Italy
 ## Today at the café · v0.7.0
 
 The main route now follows local calendar days: meet a different guest, hear a personal coffee story, discover the owner's bean/tool/recipe and optionally accept a randomly selected mini game. Match table cards, classify a sample label, compose a café picture, try brewing, or just listen. Same-day visits retain their state; no sequential chapter unlock or daily attendance penalty. Seven authored guests/stories and twelve owner introductions rotate and repeat. Earlier chapter progress remains available in an optional section. [Scope, limits and verification](docs/CAFE-DAY.md).
+
+## Play the café story · v0.8.0
+
+The home screen now opens on an illustrated, staged conversation rather than a dashboard: an incident, guest dialogue, your reply, a physical owner discovery, a contextual optional activity and an authored ending. Legacy practice is folded away. Scene position and inspection are saved compatibly with v0.7 days. [Scenes, captures, limits and checks](docs/CAFE-SCENES.md).

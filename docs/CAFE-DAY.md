@@ -1,5 +1,7 @@
 # Today at the café · v0.7.0
 
+The flat presentation described below was replaced by [playable illustrated scenes in v0.8.0](CAFE-SCENES.md). Daily scheduling and storage behavior remain applicable.
+
 The primary experience is a local-calendar café visit, replacing the previous
 seven-step chapter as the home page's main action. Guests, the owner's introduction,
 conversation and invitation appear in one scene. There is no numbered sequence to
