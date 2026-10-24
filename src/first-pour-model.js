@@ -29,6 +29,7 @@ export function tickFirstPour(state,pouring,dt){
 export function advanceFirstPour(state){if(!state.ready||state.done)throw Error('Finish the current stage first');return {...state,stage:state.stage+1,ready:false};}
 export function validFirstFeedback(feedback){return Boolean(feedback&&['reflection','self-reported-real-tasting'].includes(feedback.context)&&typeof feedback.notes==='string'&&feedback.notes.length<=1000&&typeof feedback.nextChange==='string'&&feedback.nextChange.length<=1000&&(feedback.enjoyment===null||Number.isInteger(feedback.enjoyment)&&feedback.enjoyment>=1&&feedback.enjoyment<=5)&&feedback.axes&&firstPourAxes.every(k=>feedback.axes[k]===null||Number.isInteger(feedback.axes[k])&&feedback.axes[k]>=1&&feedback.axes[k]<=5));}
 export function validFirstMemory(entry){
+ if(entry?.baselineId!==undefined&&(typeof entry.baselineId!=='string'||!entry.baselineId||entry.baselineId===entry.id))return false;
  if(!entry||typeof entry.id!=='string'||!entry.id||typeof entry.date!=='string'||!Number.isFinite(Date.parse(entry.date))||entry.kind!=='first-pour-game-memory'||!validFirstRecipe(entry.recipe)||!validFirstFeedback(entry.feedback))return false;
  const expected=firstPourScore(entry.recipe),total=firstPourPlan(entry.recipe)[2];
  return entry.result?.modelVersion===firstPourVersion&&entry.result.score===expected.score&&entry.pour?.water===total&&entry.pour.stages===3&&Number.isFinite(entry.pour.playSeconds)&&entry.pour.playSeconds>=0;

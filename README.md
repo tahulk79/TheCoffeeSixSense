@@ -4,7 +4,22 @@
 
 A web-first specialty coffee learning game where players practice brewing, evaluate sensory qualities, compare past sessions, and record personal discoveries. **Discover Your Sixth Taste · From Coffee to Consciousness.** “Sixth Taste” is a metaphor for personal discovery, not a scientifically established sixth basic taste. The six sensory attributes are separate descriptors.
 
-## v0.3 — The First Pour
+## v0.4 — One Change, One Discovery
+
+From a saved Coffee Memory, **Try one change** to brew B against baseline A.
+Choose grind, temperature, ratio or recipe time; other fields stay fixed. Save
+B, open its linked comparison and record what you noticed. **Brew this recipe**
+restores any saved recipe for free practice. A last-saved-cup shortcut and
+accent-insensitive history search make returning easier.
+
+Six-axis SVG sensory maps use only your optional intensity ratings; missing
+values stay missing and enjoyment is separate. Different feedback contexts are
+flagged. v0.3 memories load without migration, and export/delete/recovery remain
+available. No scientific model claims or backend changes.
+
+See [v0.4 scope, compatibility and validation](docs/V0.4.md).
+
+## Brew station — introduced in v0.3
 
 Open **The First Pour · three stages** at the counter. Configure a fictional
 Ethiopia Washed, Colombia Honey or Brazil Natural lot, dose, ratio, grind,
