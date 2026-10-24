@@ -10,7 +10,10 @@ Open **The First Pour · three stages** at the counter. Configure a fictional
 Ethiopia Washed, Colombia Honey or Brazil Natural lot, dose, ratio, grind,
 temperature and recipe time. Hold, use keyboard Space/Enter, or tap the pour
 toggle through bloom → main pour → final pour. Each stage stops at its water
-limit and waits for an explicit transition. Restart keeps the recipe.
+limit and waits for an explicit transition. Water streams and coffee droplets
+animate independently: releasing the kettle lets coffee continue dripping into
+the cup, and the result waits for the visual last-drop tail. Restart keeps the
+recipe. The drawdown is an illustration, not a measured extraction model.
 
 Save the resulting game recipe, optional six-axis subjective intensities,
 enjoyment, notes and next change in a separate Coffee Memory store. Compare two
