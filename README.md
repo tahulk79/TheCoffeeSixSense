@@ -4,6 +4,17 @@
 
 A web-first specialty coffee learning game where players practice brewing, evaluate sensory qualities, compare past sessions, and record personal discoveries. **Discover Your Sixth Taste · From Coffee to Consciousness.** “Sixth Taste” is a metaphor for personal discovery, not a scientifically established sixth basic taste. The six sensory attributes are separate descriptors.
 
+## v0.5 — Your First Shift
+
+Choose **The First Pour · v0.5 → Play your first shift**. Mai guides a short
+session: save a 180 ml-water brew with a deliberate pause, try B with one grind
+step changed, then read back the A/B recipes. Complete the three goals to receive
+a game keepsake. Free brewing and all v0.4 features remain available.
+
+Progress follows saved actions, not flavor scores. Optional enjoyment/return
+feedback stays local and can be exported; no analytics or backend. Old memories
+stay readable. [Scope, compatibility and next engagement review](docs/V0.5.md).
+
 ## v0.4 — One Change, One Discovery
 
 From a saved Coffee Memory, **Try one change** to brew B against baseline A.
