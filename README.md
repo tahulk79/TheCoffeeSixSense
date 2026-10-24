@@ -106,3 +106,7 @@ Players can photograph packaging and beans, review label details, fill missing f
 The repository contains a playable Vite frontend with brew simulation, personal tasting reviews, local session history, comparison, discoveries and JSON export. Phase 1 provides a Vietnamese/English observation-and-choice pour-over game: quick start, three changing situations, immediate cause/effect feedback, optional tasting notes, save confirmation, and a one-change replay goal. History, comparison, four quests, XP and badges are available. The standalone Pages application is generated into `docs/index.html`. See [Phase 1 acceptance and validation](docs/PHASE1.md).
 
 The active game is deployed on **GitHub Pages**. Legacy optional VPS preparation targets **https://cf.ta79.com** on Ubuntu/Nginx and is not required for the game. See [the deployment runbook](docs/DEPLOYMENT.md) for local verification, DNS, HTTPS bootstrap, restricted SSH deployment, approval gates and rollback. Production has not been provisioned or deployed by this change.
+
+## Seven café days · v0.6.0
+
+An optional seven-visit story chapter introduces returning guests, branching conversations, a code-drawn photo corner and invitations to the brew station. Continue at your own pace, skip any activity and revisit mementos on the café board. Progress is local to this browser; the finite chapter has an explicit ending. [Story, storage limits and checks](docs/SEVEN-CAFE-DAYS.md).
