@@ -1,3 +1,4 @@
+import {recipeReference,recipeReferencePlan} from './recipe-references.js';
 // Versioned illustrative game rules. Not extraction, TDS, or measured taste.
 export const firstPourKey='c6s.first-pour.v03';
 export const firstPourVersion='first-pour-0.3.1';
@@ -13,12 +14,12 @@ export const firstPourBeans=[
 ];
 export function firstPourPreset(bean='ethiopia'){const entry=firstPourBeans.find(b=>b.id===bean);if(!entry)throw Error('Unknown bean');return {bean,...(entry.target||{dose:20,ratio:15,grind:20,temp:93,time:180})};}
 export const firstPourLimits={dose:[12,30],ratio:[12,20],grind:[1,40],temp:[80,100],time:[90,360]};
-export function validFirstRecipe(recipe){return Boolean(firstPourBeans.some(b=>b.id===recipe?.bean)&&Object.entries(firstPourLimits).every(([k,[min,max]])=>Number.isFinite(recipe[k])&&recipe[k]>=min&&recipe[k]<=max));}
-export function firstPourPlan(recipe){if(!validFirstRecipe(recipe))throw Error('Invalid first-pour recipe');const total=Math.round(recipe.dose*recipe.ratio);return [Math.round(total*.2),Math.round(total*.7),total];}
+export function validFirstRecipe(recipe){return Boolean((recipe?.referenceId===undefined||Boolean(recipeReference(recipe.referenceId)))&&firstPourBeans.some(b=>b.id===recipe?.bean)&&Object.entries(firstPourLimits).every(([k,[min,max]])=>Number.isFinite(recipe[k])&&recipe[k]>=min&&recipe[k]<=max));}
+export function firstPourPlan(recipe){if(!validFirstRecipe(recipe))throw Error('Invalid first-pour recipe');if(recipe.referenceId)return recipeReferencePlan(recipe);const total=Math.round(recipe.dose*recipe.ratio);return [Math.round(total*.2),Math.round(total*.7),total];}
 export function firstPourScore(recipe){
  if(!validFirstRecipe(recipe))throw Error('Invalid first-pour recipe');
  const target=firstPourBeans.find(b=>b.id===recipe.bean).target;
- if(!target)return {modelVersion:firstPourVersion,score:null,largest:null,matched:false};
+ if(!target||recipe.referenceId)return {modelVersion:firstPourVersion,score:null,largest:null,matched:false};
  const weights={grind:3,temp:4,ratio:6,time:.15};
  const deviations=Object.entries(weights).map(([field,weight])=>({field,delta:recipe[field]-target[field],penalty:Math.abs(recipe[field]-target[field])*weight}));
  return {modelVersion:firstPourVersion,score:Math.max(0,Math.round(100-deviations.reduce((s,d)=>s+d.penalty,0))),largest:deviations.reduce((a,b)=>a.penalty>=b.penalty?a:b).field,matched:deviations.every(d=>d.penalty===0)};
@@ -47,7 +48,7 @@ export function loadFirstMemories(raw){
  try{const parsed=JSON.parse(raw);if(parsed.version!==1||!Array.isArray(parsed.records)||!parsed.records.every(validFirstMemory)||new Set(parsed.records.map(r=>r.id)).size!==parsed.records.length)throw Error('Invalid memory');return {records:parsed.records,writable:true};}catch{return {records:[],writable:false,raw};}
 }
 export function putFirstMemory(records,entry){if(!validFirstMemory(entry))throw Error('Invalid first-pour memory');return [...records.filter(r=>r.id!==entry.id),entry];}
-export function compareFirstMemories(a,b){return ['bean',...Object.keys(firstPourLimits)].filter(k=>a.recipe[k]!==b.recipe[k]);}
+export function compareFirstMemories(a,b){return ['bean',...Object.keys(firstPourLimits),'referenceId'].filter(k=>a.recipe[k]!==b.recipe[k]);}
 
 // Presentation-only drawdown, independent of the recipe score and saved measurements.
 export function firstPourDrawdown(collected,poured,total,dt){

@@ -1,5 +1,7 @@
 # Play the café story · v0.8.0
 
+v0.8.1 adds a [recipe provenance notebook](RECIPE-PROVENANCE.md) and extends the shelf to thirteen entries while preserving earlier saved discoveries.
+
 v0.7 shipped the intended daily scheduling but exposed it as a long dashboard.
 The opening screen was dominated by a room banner, large heading, navigation and
 legacy practice. Guest stories were paragraphs, the owner discovery was a text

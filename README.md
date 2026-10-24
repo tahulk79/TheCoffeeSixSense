@@ -120,3 +120,7 @@ The main route now follows local calendar days: meet a different guest, hear a p
 ## Play the café story · v0.8.0
 
 The home screen now opens on an illustrated, staged conversation rather than a dashboard: an incident, guest dialogue, your reply, a physical owner discovery, a contextual optional activity and an authored ending. Legacy practice is folded away. Scene position and inspection are saved compatibly with v0.7 days. [Scenes, captures, limits and checks](docs/CAFE-SCENES.md).
+
+## Recipe provenance · v0.8.1
+
+James Hoffmann’s Ultimate V60 example (30 g coffee / 500 g input water) now has a reference notebook with creator, original-video link, pinned corroborating transcriptions, steps and explicit practice adaptations. Reference practice uses cumulative 60/300/500 targets, retains the player’s unsourced game settings and has no invented taste score. Four preexisting recipe examples remain game-authored. The catalog now has thirteen entries; older visit discoveries are preserved. [Sources, verification limits and checks](docs/RECIPE-PROVENANCE.md).
